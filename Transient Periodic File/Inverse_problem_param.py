@@ -23,7 +23,7 @@ def minimize_equation(T_real: np.ndarray, T_simulated: np.ndarray) -> float:
 
     diff = (T_simulated - T_real) ** 2
 
-    return np.sum(simps(diff, x=np.arange(T_real.shape[0]), axis=0))
+    return (1/2) * np.sum(simps(diff, x=np.arange(T_real.shape[0]), axis=0))
 
 def calculate_difference(args: Tuple[int, np.ndarray, np.ndarray, float, float, float, tuple]) -> Tuple[float, int]:
     """
@@ -35,11 +35,11 @@ def calculate_difference(args: Tuple[int, np.ndarray, np.ndarray, float, float, 
     Returns:
     Tuple[float, int, np.ndarray]: The derivative estimate, the index and the perturbed temperature.
     """
-    index, parameters_original, T_real, delta, E_p, lambda_regul, shape = args
+    index, parameters, T_real, delta, E_p, lambda_regul, shape = args
 
     # Perturb the parameter
-    parameters_modified = parameters_original.copy()
-    dp = parameters_original[index] * delta
+    parameters_modified = parameters.copy()
+    dp = parameters[index] * delta
     parameters_modified[index] += dp
     
     max_time_steps, num_theta, num_r = shape
@@ -125,7 +125,7 @@ def optimize_parameters(T_real: np.ndarray, parameters: np.ndarray, lambda_regul
     start_time = time.time()
 
     # Morozov's discrepancy principle threshold
-    morozov = len(parameters) * (experiment_time) * (deviation ** 2) 
+    morozov = (1/2) * len(parameters) * (experiment_time) * (deviation ** 2) 
 
     while iterations <= max_iterations and step_size > 0 and value_eq_min >= morozov:
         # Compute derivatives and simulated temperatures
@@ -196,7 +196,8 @@ def run_optimization(T_real, random_values, max_iterations, lambda_regul: float,
     T_real += (deviation * random_values)
     T_real = T_real.to_numpy()
 
-    parameters_number = (4 * N) + 2
+    '''parameters_number = (4 * N) + 2'''
+    parameters_number = (4 * N) + 1
 
     # Initialize q parameters
     parameters = np.ones(parameters_number, dtype=np.float64) * 100.0
@@ -244,7 +245,7 @@ def heat_flux_approximation(parameters: np.ndarray, ntheta: int, experimental_ti
     Returns:
     np.ndarray: Approximated heat flux.
     """
-    N = int((len(parameters) - 2) / 4)
+    '''N = int((len(parameters) - 2) / 4)
 
     A = parameters[0]
     B = parameters[1 : N + 1]
@@ -274,7 +275,39 @@ def heat_flux_approximation(parameters: np.ndarray, ntheta: int, experimental_ti
     
     q_time = D + sum_cos_time + sum_sin_time
 
-    q = np.outer(q_time, q_theta)
+    q = np.outer(q_time, q_theta)'''
+
+    N = int((len(parameters) - 1) / 4)
+
+    A = parameters[0]
+    
+    B = parameters[1 : N + 1]
+    C = parameters[N + 1 : 2 * N + 1]
+
+    E = parameters[2 * N + 1 : 3 * N + 1]
+    F = parameters[3 * N + 1 : 4 * N + 1]
+
+    theta = np.linspace(-np.pi, np.pi, ntheta, endpoint=False)
+
+    w = np.pi # Frequency of the periodic function
+
+    q = np.zeros(ntheta, dtype=np.float64)
+
+    internal_theta =  w * (theta + np.pi) / (2 * np.pi)
+
+    sum_cos_theta = np.sum([B[i] * np.cos((i + 1) * internal_theta) for i in range(N)], axis=0)
+    sum_sin_theta = np.sum([C[i] * np.sin((i + 1) * internal_theta) for i in range(N)], axis=0)
+
+    q_theta =  sum_cos_theta + sum_sin_theta
+
+    internal_time = w * np.arange(experimental_time) / experimental_time
+    
+    sum_cos_time = np.sum([E[i] * np.cos((i + 1) * internal_time) for i in range(N)], axis=0)
+    sum_sin_time = np.sum([F[i] * np.sin((i + 1) * internal_time) for i in range(N)], axis=0)
+    
+    q_time = sum_cos_time + sum_sin_time
+
+    q = A + np.outer(q_time, q_theta)
 
     return q
 

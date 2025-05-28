@@ -1,7 +1,6 @@
 #LEMBRAR DE MUDAR AQUI E NO UTILS PARA QUAL MODALIDADE VAI RODAR 
 #from Inverse_problem_param import run_optimization, heat_flux_aproximation
 from Inverse_problem_periodic import run_optimization, heat_flux_aproximation
-#from Inverse_problem_q import run_optimization
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,19 +10,18 @@ import multiprocessing as mp
 import os
 from utils import run_experiment, load_or_generate_random_values
 
-
 # Define the values of lambda and deviation
 #deviations = [0.1,0.5,1,5,10,50,100,250]
 #lambdas = np.logspace(-10, -5, num=10)
 
-deviations = [0.5]
+deviations = [0.0]
 lambdas = [0]
 
 radial_size = 9
 angular_size = 80
 experiment_time = 1100
 
-num_sensors = 20
+num_sensors = 80
 max_iterations = 3000
 
 
@@ -115,6 +113,7 @@ if __name__ == '__main__':
     if experiment_time == 1200:
         heat_flux_final = heat_flux_aproximation(parameters, angular_size//4)
         from Direct_problem import ADIMethod
+    
     else:
         heat_flux_final = heat_flux_aproximation(parameters, experiment_time)
         from Direct_problem_periodic import ADIMethod

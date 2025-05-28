@@ -200,7 +200,7 @@ def run_optimization(T_real, random_values, max_iterations, lambda_regul: float,
     T_real = T_real.to_numpy()
 
     # Initialize q parameters
-    parameters = np.ones(17, dtype=np.float64) * 1000.0 
+    parameters = np.ones(2, dtype=np.float64) * 100.0
 
     # Define step_size
     step_size = 100
@@ -245,16 +245,16 @@ def heat_flux_aproximation(parameters: np.ndarray, experimental_time) -> np.ndar
     np.ndarray: Approximated heat flux.
     """
 
-    '''A = parameters[0]
+    A = parameters[0]
     B = parameters[1]
 
     heat_flux = np.zeros((experimental_time), dtype=np.float64)
 
     for i in range(experimental_time):
-        heat_flux[i] = A *( 1 + np.sin((B * i)/experimental_time))'''
+        heat_flux[i] = A *( 1 + np.sin((B * i)/experimental_time))
 
 
-    N = 8
+    '''N = 8
 
     A = parameters[0]
     B = parameters[1 : N + 1]
@@ -270,7 +270,7 @@ def heat_flux_aproximation(parameters: np.ndarray, experimental_time) -> np.ndar
     sum_cos = np.sum([B[i] * np.cos((i + 1) * internal) for i in range(N)], axis=0)
     sum_sin = np.sum([C[i] * np.sin((i + 1) * internal) for i in range(N)], axis=0)
     
-    heat_flux = A + sum_cos + sum_sin
+    heat_flux = A + sum_cos + sum_sin'''
 
     return heat_flux
 

@@ -17,11 +17,11 @@ lambdas = [0]
 
 radial_size = 9
 angular_size = 80
-experiment_time = 1100 # 12 hours in seconds
+experiment_time = 1000 
 num_sensors = 20
 max_iterations = 10000
 dt_real = 1 # Seconds
-N = 1
+N = 4
 
 if __name__ == '__main__':
     filename = f"Transient Periodic File/data/temperature/Temperature_Boundary_External_{radial_size}_{angular_size}_{experiment_time}.csv"
@@ -98,20 +98,20 @@ if __name__ == '__main__':
 
 
     df_general_results = pd.DataFrame(summary_results)
-    df_general_results.to_csv(f"Transient Periodic File/output/transient_summary_results_{radial_size}_{angular_size}_{experiment_time}.csv", index=False)
+    df_general_results.to_csv(f"Transient Periodic File/output/transient_summary_results_{radial_size}_{angular_size}_{experiment_time}_{N}.csv", index=False)
 
     df_detailed_results = pd.DataFrame(detailed_results)
-    df_detailed_results.to_csv(f"Transient Periodic File/output/transient_detailed_results_{radial_size}_{angular_size}_{experiment_time}.csv", index=False)
+    df_detailed_results.to_csv(f"Transient Periodic File/output/transient_detailed_results_{radial_size}_{angular_size}_{experiment_time}_{N}.csv", index=False)
 
     df_optimization_history = pd.DataFrame(optimization_history)
-    df_optimization_history.to_csv(f"Transient Periodic File/output/transient_optimization_history_{radial_size}_{angular_size}_{experiment_time}.csv", index=False)
+    df_optimization_history.to_csv(f"Transient Periodic File/output/transient_optimization_history_{radial_size}_{angular_size}_{experiment_time}_{N}.csv", index=False)
     
-    heat_flux_final = heat_flux_approximation(parameters, angular_size//4, experiment_time)
+    heat_flux_final = heat_flux_approximation(parameters, angular_size//(angular_size/num_sensors), experiment_time)
     df_heat_flux = pd.DataFrame(heat_flux_final)
-    df_heat_flux.to_csv(f"Transient Periodic File/output/transient_heat_flux_{radial_size}_{angular_size}_{experiment_time}.csv", index=False)
+    df_heat_flux.to_csv(f"Transient Periodic File/output/transient_heat_flux_{radial_size}_{angular_size}_{experiment_time}_{N}.csv", index=False)
 
-    df_temperature = pd.DataFrame(ADIMethod(heat_flux_final, radial_size, angular_size//4, experiment_time)[-1])
-    df_temperature.to_csv(f"Transient Periodic File/output/transient_temperature_{radial_size}_{angular_size}_{experiment_time}.csv", index=False)
+    df_temperature = pd.DataFrame(ADIMethod(heat_flux_final, radial_size, angular_size//(angular_size/num_sensors), experiment_time)[-1])
+    df_temperature.to_csv(f"Transient Periodic File/output/transient_temperature_{radial_size}_{angular_size}_{experiment_time}_{N}.csv", index=False)
 
     print("CSVs saved successfully!")        
 

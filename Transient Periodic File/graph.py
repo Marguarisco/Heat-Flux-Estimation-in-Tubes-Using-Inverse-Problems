@@ -2,56 +2,70 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import mplcursors
 
-time = 1100
+time = 1000
+N = 4
 
 # Carregar os dados
 base_path = "Transient Periodic File/data"
-real_flux = pd.read_csv(base_path + "/heat_flux_real.csv")  # 80 x 1000
-estimated_flux = pd.read_csv(f'Transient Periodic File/output/transient_heat_flux_9_80_{time}.csv')  # 20 x 1000
+real_flux = pd.read_csv(base_path + f"/heat_flux_real/heat_flux_real_9_80_{time}.csv")  # nt x ntheta
+estimated_flux = pd.read_csv(f'Transient Periodic File/output/transient_heat_flux_9_80_{time}_{N}.csv')  # nt x ntheta
 
 real_temperature = pd.read_csv(base_path+ f'/temperature/Temperature_Boundary_External_9_80_{time}.csv')  # 1D array
-estimated_temperature = pd.read_csv(f'Transient Periodic File/output/transient_temperature_9_80_{time}.csv')  # 1D array
+estimated_temperature = pd.read_csv(f'Transient Periodic File/output/transient_temperature_9_80_{time}_{N}.csv')  # 1D array
 
 # Converter para NumPy arrays
 real_flux = real_flux.to_numpy()
 estimated_flux = estimated_flux.to_numpy()
 
-values_real_temperature = real_temperature.iloc[-1, ::4].to_numpy()
+reduction_factor = (real_flux.shape[1]//estimated_flux.shape[1])
+
+values_real_temperature = real_temperature.iloc[-1, ::reduction_factor].to_numpy()
 values_estimated_temperature = estimated_temperature.iloc[:, -1].to_numpy()
 
 theta_space = range(len(values_real_temperature))
-# Criar a figura com layout 2x2
-fig = plt.figure(figsize=(12, 9))
 
-# Gráfico do fluxo de calor real
-ax1 = plt.subplot(2, 2, 1)
-im_real = ax1.imshow(real_flux, aspect='auto', cmap='viridis')
-ax1.set_title("Real Heat Flux")
-ax1.set_xlabel("Theta")
-ax1.set_ylabel("Time")
-cbar_real = plt.colorbar(im_real, ax=ax1)
-cbar_real.set_label("Heat Flux")
+flux_diff = real_flux[:, ::reduction_factor] - estimated_flux
 
-# Gráfico do fluxo de calor estimado
-ax2 = plt.subplot(2, 2, 2)
-im_estimated = ax2.imshow(estimated_flux, aspect='auto', cmap='viridis')
-ax2.set_title("Estimated Heat Flux")
-ax2.set_xlabel("Theta")
-ax2.set_ylabel("Time")
-cbar_estimated = plt.colorbar(im_estimated, ax=ax2)
-cbar_estimated.set_label("Heat Flux")
+fig, axs = plt.subplots(2, 2, figsize=(14, 10))
+
+print(
+    f"Real Flux: min={real_flux.min():.2f}, max={real_flux.max():.2f} | "
+    f"Estimated Flux: min={estimated_flux.min():.2f}, max={estimated_flux.max():.2f} | "
+    f"Flux Difference: min={flux_diff.min():.2f}, max={flux_diff.max():.2f}"
+)
+
+# Fluxo real
+im0 = axs[0, 0].imshow(real_flux, aspect='auto', cmap='viridis', vmin=0, vmax=10000)
+axs[0, 0].set_title("Real Heat Flux")
+axs[0, 0].set_xlabel("Theta")
+axs[0, 0].set_ylabel("Time")
+fig.colorbar(im0, ax=axs[0, 0])
+
+# Fluxo estimado
+im1 = axs[0, 1].imshow(estimated_flux, aspect='auto', cmap='viridis', vmin=0, vmax=10000)
+axs[0, 1].set_title("Estimated Heat Flux")
+axs[0, 1].set_xlabel("Theta")
+axs[0, 1].set_ylabel("Time")
+fig.colorbar(im1, ax=axs[0, 1])
+
+# Diferença
+vmax = abs(flux_diff).max()
+im2 = axs[1, 0].imshow(flux_diff, aspect='auto', cmap='seismic', vmin=-1500, vmax=1500)
+axs[1, 0].set_title("Difference (Real - Estimated) Heat Flux")
+axs[1, 0].set_xlabel("Theta")
+axs[1, 0].set_ylabel("Time")
+fig.colorbar(im2, ax=axs[1, 0])
+
+# Temperatura
+axs[1, 1].plot(theta_space, values_real_temperature, label='Real Temperature')
+axs[1, 1].plot(theta_space, values_estimated_temperature, label='Estimated Temperature')
+axs[1, 1].set_title("Temperature vs Theta")
+axs[1, 1].set_xlabel("Theta")
+axs[1, 1].set_ylabel("Temperature")
+axs[1, 1].set_ylim(300, 350)
+axs[1, 1].legend()
+axs[1, 1].grid(True)
 
 
-# Gráfico de temperatura
-ax3 = plt.subplot(2, 1, 2)
-ax3.plot(theta_space, values_real_temperature, label='Real Temperature')
-ax3.plot(theta_space, values_estimated_temperature, label='Estimated Temperature')
-ax3.set_title("Temperature vs Theta")
-ax3.set_xlabel("Theta")
-ax3.set_ylabel("Temperature")
-ax3.legend()
-ax3.grid(True)
-
-# Ajustar layout
 plt.tight_layout()
 plt.show()

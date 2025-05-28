@@ -1,5 +1,5 @@
 import numpy as np
-from numba import njit
+from numba import njit, prange
 from scipy.integrate import simpson as simps
 from typing import Tuple
 from Direct_problem import ADIMethod
@@ -135,7 +135,7 @@ def run_experiment(radial_size, angular_size, experimental_time, dt_real):
     periodic_heat_flux = np.zeros((experimental_time, angular_size), dtype=np.float64)
 
     for i in range(experimental_time):
-        periodic_heat_flux[i] = heat_flux * (1 + np.sin(np.pi * i / 43200))
+        periodic_heat_flux[i] = heat_flux * (1 + np.sin(np.pi * i / experimental_time))
 
     '''A = 100
     B = [50]
@@ -180,7 +180,7 @@ def run_experiment(radial_size, angular_size, experimental_time, dt_real):
     periodic_heat_flux = q'''
 
     heat_flux_data = pd.DataFrame(periodic_heat_flux)
-    heat_flux_data.to_csv('Transient Periodic File/data/heat_flux_real.csv', index=False)
+    heat_flux_data.to_csv(f'Transient Periodic File/data/heat_flux_real/heat_flux_real_{radial_size}_{angular_size}_{experimental_time}.csv', index=False)
 
     # Execute the ADI method
     T_ext_history = ADIMethod(periodic_heat_flux, radial_size, angular_size, experimental_time, dt_real)

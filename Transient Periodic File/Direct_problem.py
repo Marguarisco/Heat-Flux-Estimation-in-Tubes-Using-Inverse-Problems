@@ -35,6 +35,7 @@ def solve_tridiagonal_system(
     """
     c_prime = np.zeros(size - 1, dtype=np.float64)
     d_prime = np.zeros(size, dtype=np.float64)
+    solution = np.zeros(size, dtype=np.float64)
 
     # Initialize the first elements
     inv_denom = 1.0 / main_diagonal[0]
@@ -52,7 +53,6 @@ def solve_tridiagonal_system(
         main_diagonal[size - 1] - lower_diagonal[size - 2] * c_prime[size - 2])
 
     # Back substitution
-    solution = np.zeros(size, dtype=np.float64)
     solution[-1] = d_prime[-1]
     for i in range(size - 2, -1, -1):
         solution[i] = d_prime[i] - c_prime[i] * solution[i + 1]
@@ -267,10 +267,10 @@ def ADIMethod(
     while time_step < max_time_steps:
         time_step += 1
 
-        for _ in range(1/dt):
+        beta_0 = (2 * dr * heat_flux[time_step - 1]) / thermal_conductivity
+        gamma_0 = (psi_r[0] - psi_rr) * beta_0
 
-            beta_0 = (2 * dr * heat_flux[time_step - 1]) / thermal_conductivity
-            gamma_0 = (psi_r[0] - psi_rr) * beta_0
+        for _ in range(1/dt):
 
             # Solve the implicit radial step
             new_temp = solve_implicit_radial(
