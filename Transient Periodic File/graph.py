@@ -3,15 +3,16 @@ import matplotlib.pyplot as plt
 import mplcursors
 
 time = 1000
-N = 4
+N = 12
+max_iterations = 1000000
 
 # Carregar os dados
 base_path = "Transient Periodic File/data"
 real_flux = pd.read_csv(base_path + f"/heat_flux_real/heat_flux_real_9_80_{time}.csv")  # nt x ntheta
-estimated_flux = pd.read_csv(f'Transient Periodic File/output/transient_heat_flux_9_80_{time}_{N}.csv')  # nt x ntheta
+estimated_flux = pd.read_csv(f'Transient Periodic File/output/transient_heat_flux_9_80_{time}_{N}_{max_iterations}.csv')  # nt x ntheta
 
 real_temperature = pd.read_csv(base_path+ f'/temperature/Temperature_Boundary_External_9_80_{time}.csv')  # 1D array
-estimated_temperature = pd.read_csv(f'Transient Periodic File/output/transient_temperature_9_80_{time}_{N}.csv')  # 1D array
+estimated_temperature = pd.read_csv(f'Transient Periodic File/output/transient_temperature_9_80_{time}_{N}_{max_iterations}.csv')  # 1D array
 
 # Converter para NumPy arrays
 real_flux = real_flux.to_numpy()
@@ -50,7 +51,7 @@ fig.colorbar(im1, ax=axs[0, 1])
 
 # Diferença
 vmax = abs(flux_diff).max()
-im2 = axs[1, 0].imshow(flux_diff, aspect='auto', cmap='seismic', vmin=-1500, vmax=1500)
+im2 = axs[1, 0].imshow(flux_diff, aspect='auto', cmap='seismic', vmin=-3000, vmax=3000)
 axs[1, 0].set_title("Difference (Real - Estimated) Heat Flux")
 axs[1, 0].set_xlabel("Theta")
 axs[1, 0].set_ylabel("Time")

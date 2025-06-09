@@ -127,7 +127,7 @@ def optimize_parameters(T_real: np.ndarray, parameters: np.ndarray, lambda_regul
     # Morozov's discrepancy principle threshold
     morozov = (1/2) * len(parameters) * (experiment_time) * (deviation ** 2) 
 
-    while iterations <= max_iterations and step_size > 0 and value_eq_min >= morozov:
+    while iterations <= max_iterations and step_size > 0: #and value_eq_min >= morozov:
         # Compute derivatives and simulated temperatures
         gradiente, T_simulated, perturbed_temperatures = compute_differences(parameters, T_real, lambda_regul, executor, delta, shape)
         value_eq_min = minimize_equation(T_real, T_simulated)
@@ -141,7 +141,7 @@ def optimize_parameters(T_real: np.ndarray, parameters: np.ndarray, lambda_regul
         parameters = parameters + (step_size * direcao_descida)
 
         # Print progress at every iteration or if Morozov condition is met
-        if iterations % 100 == 0:
+        if iterations % 1000 == 0:
             elapsed_time = time.time() - start_time
             print(f'Iteration {iterations}, Objective Function: {value_eq_min:.6f}, '
                   f'Time: {elapsed_time:.2f}s, step_size: {step_size}, Morozov: {morozov}')
@@ -175,7 +175,7 @@ def optimize_parameters(T_real: np.ndarray, parameters: np.ndarray, lambda_regul
     return parameters, final_minimize_value, final_tikhonov_value, T_simulated, df_results
 
 def run_optimization(T_real, random_values, max_iterations, lambda_regul: float, executor: futures.Executor,
-                     deviation: float = 0.1, shape = None, N: int = 6, output_csv: str = "optimization_results_transient.csv") -> Tuple[np.ndarray, float, float]:
+                     deviation: float = 0.1, shape = None, N: int = 6) -> Tuple[np.ndarray, float, float]:
     """
     Runs the optimization process.
 
@@ -183,7 +183,6 @@ def run_optimization(T_real, random_values, max_iterations, lambda_regul: float,
     lambda_regul (float): Regularization parameter.
     executor (futures.Executor): Executor for parallel computation.
     deviation (float): Deviation for Morozov's discrepancy principle.
-    output_csv (str): Filename for saving optimization results.
 
     Returns:
     Tuple[np.ndarray, float, float]: Optimized q, minimized objective value, and Tikhonov value.
@@ -219,9 +218,6 @@ def run_optimization(T_real, random_values, max_iterations, lambda_regul: float,
         )
     
     parameters, minimized_value, tikhonov_val, temperature_simulated, optimization_results = args
-
-    # Save optimization history to CSV
-    optimization_results.to_csv(output_csv, index=False)
 
     print("Optimization completed successfully.")
     print(f"Parameters: {parameters}")
