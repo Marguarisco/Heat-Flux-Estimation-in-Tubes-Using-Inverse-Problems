@@ -193,7 +193,7 @@ def solve_implicit_theta(
 def ADIMethod(
     heat_flux: np.ndarray,
     num_r: int = 9, 
-    num_theta: int = 20, 
+    num_theta: int = 80, 
     max_time_steps: int = 19000,
     dt: float = 1 
 ) -> np.ndarray:
@@ -249,12 +249,12 @@ def ADIMethod(
     time_step = 0
 
     # Diagonals for the radial direction
-    lower_diag_r = -psi_rr * np.ones(num_r - 1)
+    aux_diag_r = -psi_rr * np.ones(num_r - 1)
     main_diag_r = np.ones(num_r) * (1 + 2 * psi_rr)
     main_diag_r[-1] = 1 + 2 * psi_rr - gamma_j
-    upper_diag_r = lower_diag_r - psi_r[:num_r - 1]
+    upper_diag_r = aux_diag_r - psi_r[:num_r - 1]
     upper_diag_r[0] = -2 * psi_rr  # Adjust for boundary condition at r=0
-    lower_diag_r = lower_diag_r + psi_r[1:num_r]
+    lower_diag_r = aux_diag_r + psi_r[1:num_r]
     lower_diag_r[-1] = -2 * psi_rr  # Adjust for boundary condition at r=r_ext
 
     # Diagonals for the theta direction

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import mplcursors
 
 time = 1000
-N = 12
+N = 2
 max_iterations = 1000000
 
 # Carregar os dados

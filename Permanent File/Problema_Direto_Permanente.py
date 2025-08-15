@@ -2,7 +2,7 @@ import numpy as np
 import numba
 
 @numba.jit(nopython=True, fastmath=True, cache=True)
-def copy_arrays(destination: np.ndarray, source: np.ndarray) -> None :
+def copy_arrays(destination: np.ndarray, source: np.ndarray) -> None:
     """
     Copies the values from the source array to the destination array.
 
@@ -10,7 +10,6 @@ def copy_arrays(destination: np.ndarray, source: np.ndarray) -> None :
     destination (np.ndarray): The array where values will be copied to.
     source (np.ndarray): The array from which values will be copied.
     """
-
     destination[:] = source[:]
 
 @numba.jit(nopython=True, fastmath=True, cache=True)
@@ -36,6 +35,7 @@ def solve_tridiagonal_system(
     """
     c_prime = np.zeros(size - 1, dtype=np.float64)
     d_prime = np.zeros(size, dtype=np.float64)
+    solution = np.zeros(size, dtype=np.float64)
 
     # Initialize the first elements
     inv_denom = 1.0 / main_diagonal[0]
@@ -53,7 +53,6 @@ def solve_tridiagonal_system(
         main_diagonal[size - 1] - lower_diagonal[size - 2] * c_prime[size - 2])
 
     # Back substitution
-    solution = np.zeros(size, dtype=np.float64)
     solution[-1] = d_prime[-1]
     for i in range(size - 2, -1, -1):
         solution[i] = d_prime[i] - c_prime[i] * solution[i + 1]
@@ -124,9 +123,7 @@ def solve_implicit_radial(
         )
 
         # Solve the tridiagonal system using Thomas algorithm
-        new_temp[j, :] = solve_tridiagonal_system(
-            lower_diag_r, main_diag_r, upper_diag_r, rhs_r, num_r
-        )
+        new_temp[j, :] = solve_tridiagonal_system(lower_diag_r, main_diag_r, upper_diag_r, rhs_r, num_r)
 
     return new_temp
 
@@ -206,7 +203,7 @@ def solve_implicit_theta(
 
 @numba.jit(nopython=True, fastmath=True, cache=True)
 def ADIMethod(
-    heat_flux: np.ndarray, 
+    heat_flux: np.ndarray,
     num_r: int = 9, 
     num_theta: int = 20, 
     max_time_steps: int = 1e10
@@ -215,10 +212,10 @@ def ADIMethod(
     Executes the Alternating Direction Implicit (ADI) method to solve the diffusion equation.
 
     Parameters:
-    heat_flux (np.ndarray): Heat source distribution along theta.
+    heat_flux (np.ndarray): Heat flux distribution as a function of theta. 
     num_r (int): Number of radial divisions. Default is 9.
     num_theta (int): Number of angular divisions. Default is 20.
-    max_time_steps (int): Maximum number of time steps. Default is 1e10.
+    max_time_steps (int): Maximum number of time steps.
 
     Returns:
     np.ndarray: Final temperature distribution matrix.
@@ -235,7 +232,7 @@ def ADIMethod(
     # SPACING
     dr = (r_outer - r_inner) / (num_r - 1)  # Radial step size
     dtheta = 2 * np.pi / num_theta  # Angular step size (radians)
-    dt = 1.0  # Time step size (seconds)
+    dt = 0.1  # Time step size (seconds)
 
     # MESH GRID
     radii = np.linspace(r_inner, r_outer, num_r)
@@ -266,13 +263,17 @@ def ADIMethod(
     diff = 1.0
 
     # Diagonals for the radial direction
-    lower_diag_r = (-psi_rr * np.ones(num_r - 1))
+    aux_diag_r = (-psi_rr * np.ones(num_r - 1))
+
     main_diag_r = np.ones(num_r) * (1 + (2 * psi_rr))
     main_diag_r[-1] = (1 + (2 * psi_rr) - gamma_j)
-    upper_diag_r = lower_diag_r - psi_r[:num_r - 1]  # Upper diagonal
+
+    upper_diag_r = aux_diag_r - psi_r[:num_r - 1]
     upper_diag_r[0] = (-2 * psi_rr)  # Adjust for boundary condition at r=0
-    lower_diag_r = lower_diag_r + psi_r[1:num_r]    # Lower diagonal
-    lower_diag_r[-1] = (-2 * psi_rr)               # Adjust for boundary condition at r=r_ext
+
+    lower_diag_r = aux_diag_r + psi_r[1:num_r]
+    lower_diag_r[-1] = (-2 * psi_rr)  # Adjust for boundary condition at r=r_ext
+
 
     # Diagonals for the angular direction
     main_diag_theta = np.ones(num_theta)
@@ -296,24 +297,27 @@ def ADIMethod(
             main_diag_theta, aux_diag_theta
         )
         copy_arrays(current_temp, new_temp)
-
+        
         # Calculate the maximum difference for steady state
         diff = np.max(np.abs(current_temp - previous_temp))
         copy_arrays(previous_temp, current_temp)
+
+    
     return current_temp
 
 if __name__ == '__main__':
     import pandas as pd
 
-    Nr = 9
-    Ntheta = 80
-    max_time_steps = int(1e10)  # Converted to integer
+    Nr = 25
+    Ntheta = 3
+    max_time_steps = 6000  # Converted to integer
 
     # Define the theta distribution
     Theta = np.linspace(-np.pi, np.pi, Ntheta, endpoint=False) 
 
     # Define the heat source as a quadratic function of Theta
-    heat_flux = ((-2000.0) * (Theta / np.pi) ** 2) + 2000.0
+    #heat_flux = ((-2000.0) * (Theta / np.pi) ** 2) + 2000.0
+    heat_flux = np.ones(Ntheta) * 1000
 
     # Execute the ADI method
     final_temperature = ADIMethod(heat_flux, Nr, Ntheta, max_time_steps)

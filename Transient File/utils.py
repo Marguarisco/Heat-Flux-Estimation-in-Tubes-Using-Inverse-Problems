@@ -128,11 +128,13 @@ def run_experiment(radial_size, angular_size, experimental_time):
     import pandas as pd
 
     '''
-    # Define the theta distribution
+    # Teste para somente espacialmente
     Theta = np.linspace(-np.pi, np.pi, angular_size, endpoint=False) 
 
     # Define the heat source as a quadratic function of Theta
     heat_flux = ((-2000.0) * (Theta / np.pi) ** 2) + 2000.0'''
+
+    #Teste para caso "somente transiente"
     
     heat_flux = np.zeros((experimental_time), dtype=np.float64)
 
