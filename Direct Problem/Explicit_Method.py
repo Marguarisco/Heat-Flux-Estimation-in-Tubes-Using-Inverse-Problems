@@ -18,9 +18,7 @@ def explicit_method(simulation_time, args):
 
     current_temp = np.ones((angular_size, radial_size)) * T_tube
 
-    total_points = angular_size * radial_size
-    coefficent_vector = np.identity(total_points, dtype=np.float64)
-    rhs_vector = np.zeros((angular_size, radial_size), dtype=np.float64) # Right-hand side vector
+    vector = np.zeros((angular_size, radial_size), dtype=np.float64) # Right-hand side vector
 
     gamma_r  = thermal_diffusivity * dt / (2 * dr * radial_space)
     gamma_rr = thermal_diffusivity * dt / (dr ** 2)
@@ -44,27 +42,27 @@ def explicit_method(simulation_time, args):
                     next_j = (j + 1) % angular_size
 
                     if i != 0 and i != radial_size - 1:
-                        rhs_vector[j, i] = ((1 - (2 * gamma_rr) - (2 * gamma_tt[i])) * current_temp[j, i]) + \
-                                ((gamma_r[i] + gamma_rr) * current_temp[j, i - 1]) + \
-                                ((- gamma_r[i] + gamma_rr) * current_temp[j, i + 1]) + \
+                        vector[j, i] = ((1 - (2 * gamma_rr) - (2 * gamma_tt[i])) * current_temp[j, i]) + \
+                                ((- gamma_r[i] + gamma_rr) * current_temp[j, i - 1]) + \
+                                ((+ gamma_r[i] + gamma_rr) * current_temp[j, i + 1]) + \
                                 gamma_tt[i] * current_temp[prev_j, i] + \
                                 gamma_tt[i] * current_temp[next_j, i]
                         
                     elif i == 0:
-                        rhs_vector[j, i] = ((1 - (2 * gamma_rr) - (2 * gamma_tt[i])) * current_temp[j, i]) + \
+                        vector[j, i] = ((1 - (2 * gamma_rr) - (2 * gamma_tt[i])) * current_temp[j, i]) + \
                             2 * gamma_rr * current_temp[j, i + 1] + \
                             gamma_0[j] + \
                             gamma_tt[i] * current_temp[prev_j, i] + \
                             gamma_tt[i] * current_temp[next_j, i]
 
                     elif i == radial_size - 1:
-                        rhs_vector[j, i] = ((1 - (2 * gamma_rr) - (2 * gamma_tt[i]) - gamma_I) * current_temp[j, i]) + \
+                        vector[j, i] = ((1 - (2 * gamma_rr) - (2 * gamma_tt[i]) - gamma_I) * current_temp[j, i]) + \
                             (2 * gamma_rr * current_temp[j, i - 1]) + \
                             (gamma_I * T_outer) + \
                             gamma_tt[i] * current_temp[prev_j, i] + \
                             gamma_tt[i] * current_temp[next_j, i]
             
-            current_temp = np.linalg.solve(coefficent_vector, rhs_vector.flatten()).reshape((angular_size, radial_size))    
+            current_temp = np.copy(vector)    
             
         T_ext_history[time_step, :, :] = current_temp
         time_step += 1
