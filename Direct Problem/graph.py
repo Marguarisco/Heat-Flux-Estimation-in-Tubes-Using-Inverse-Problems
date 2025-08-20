@@ -32,8 +32,8 @@ def graph_solo(T, dt, method):
         # --- 3. Lógica de Plotagem (Gráfico Único) ---
         fig, ax = plt.subplots(figsize=(8, 6))
         ax.plot(R, T_init, 'k--', linewidth=1.5, label='Temp. Inicial')
-        ax.plot(R, T_estimativa, 'bo-', markersize=4, label=f'Resultado ({method})')
-        ax.set_title(f'Perfil de Temperatura ({method}) - Tempo = {tempo_s:.1f} s')
+        ax.plot(R, T_estimativa, 'bo-', markersize=4, label=f'Resultado')
+        ax.set_title(f'Perfil de Temperatura - Tempo = {tempo_s:.1f} s')
         ax.set_xlabel('Posição Radial (m)')
         ax.set_ylabel('Temperatura (K)')
         ax.legend()
@@ -80,8 +80,8 @@ def gif_solo(T, dt, method):
         T_estimativa = T[passo_de_tempo_atual, -1, :]
         ax.clear()
         ax.plot(R, T_init, 'k--', linewidth=1.5, label='Temp. Inicial')
-        ax.plot(R, T_estimativa, 'bo-', markersize=4, label=f'Resultado ({method})')
-        ax.set_title(f'Evolução da Temperatura ({method}) - Tempo = {tempo_em_segundos:.1f} s')
+        ax.plot(R, T_estimativa, 'bo-', markersize=4, label=f'Resultado')
+        ax.set_title(f'Evolução da Temperatura - Tempo = {tempo_em_segundos:.1f} s')
         ax.set_xlabel('Posição Radial (m)')
         ax.set_ylabel('Temperatura (K)')
         ax.legend()
@@ -165,7 +165,7 @@ def graph_comparison_analitic(T, dt, method):
         ax2.plot(R, T_diff, 'ko-', markersize=4)
         ax2.set_title('Diferença (Estimativa - Analítico)')
         ax2.set_xlabel('Posição Radial (m)'); ax2.set_ylabel('Temperatura (K)')
-        ax2.set_ylim(-0.1, 0.1); ax2.axhline(0, color='k', lw=0.5)
+        ax2.set_ylim(-0.005, 0.005); ax2.axhline(0, color='k', lw=0.5)
         ax2.grid(True, linestyle=':')
         
         # --- 4. Salvar a Figura ---
@@ -235,7 +235,7 @@ def gif_comparison_analitic(T, method):
         ax2.plot(R, T_diff, 'ko-')
         ax2.set_title('Diferença (Estimativa - Analítico)'); 
         ax2.set_xlabel('Posição Radial (m)'); ax2.set_ylabel('Temperatura (K)')
-        ax2.set_ylim(-0.1, 0.1); ax2.axhline(0, color='k', lw=0.5)
+        ax2.set_ylim(-0.005, 0.005); ax2.axhline(0, color='k', lw=0.5)
         ax2.grid(True, linestyle=':')
         
         if (i + 1) % 20 == 0:
@@ -485,7 +485,7 @@ def graph_comparison_analitic_all(T_explicit, T_implicit, T_adi, dt):
         ax2.set_title('Diferença (Numérico - Analítico)')
         ax2.set_xlabel('Posição Radial (m)')
         ax2.set_ylabel('Diferença de Temperatura (K)')
-        ax2.set_ylim(-0.1, 0.1)  # Ajuste este limite se necessário
+        ax2.set_ylim(-0.005, 0.005)  # Ajuste este limite se necessário
         ax2.axhline(0, color='k', lw=0.7)
         ax2.legend()
         ax2.grid(True, linestyle=':')
@@ -578,7 +578,7 @@ def gif_comparison_analitic_all(T_explicit, T_implicit, T_adi, dt):
         ax2.plot(R, T_diff_adi, 'd-', color='purple', markersize=4)
         ax2.set_title('Diferença (Numérico - Analítico)')
         ax2.set_xlabel('Posição Radial (m)'); ax2.set_ylabel('Diferença (K)')
-        ax2.set_ylim(-0.1, 0.1)
+        ax2.set_ylim(-0.005, 0.005)
         ax2.axhline(0, color='k', lw=0.7)
         ax2.grid(True, linestyle=':')
 

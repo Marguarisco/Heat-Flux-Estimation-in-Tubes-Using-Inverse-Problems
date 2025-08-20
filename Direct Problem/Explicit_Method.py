@@ -16,6 +16,10 @@ def explicit_method(simulation_time, args):
 
     dt = 0.99 * ((dr**2)*(dtheta**2))/(2 * thermal_diffusivity * ((dr**2)+(dtheta**2)))
 
+    dt_all = 0.1
+
+    dt = dt_all / np.ceil(dt_all / dt)
+
     current_temp = np.ones((angular_size, radial_size)) * T_tube
 
     vector = np.zeros((angular_size, radial_size), dtype=np.float64) # Right-hand side vector
@@ -35,7 +39,7 @@ def explicit_method(simulation_time, args):
 
     time_step = 1
     while time_step < simulation_time:
-        for _ in range(0.1/dt):
+        for _ in range(dt_all/dt):
             for j in range(angular_size):
                 for i in range(radial_size):
                     prev_j = (j - 1) % angular_size

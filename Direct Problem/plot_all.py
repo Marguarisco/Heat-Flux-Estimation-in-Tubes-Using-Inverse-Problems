@@ -26,3 +26,4 @@ dt_explicit = dados_explicit['dt']
 
 
 graph_comparison_analitic_all(T_explicit, T_implicit, T_adi, dt_adi)
+gif_comparison_analitic_all(T_explicit, T_implicit, T_adi, dt_adi)

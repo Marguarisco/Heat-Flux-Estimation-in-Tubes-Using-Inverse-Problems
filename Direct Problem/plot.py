@@ -20,9 +20,9 @@ graph_comparison_analitic(T, dt, method)
 
 gif_comparison_analitic(T, method)
 
-graph_solo(T, dt, method)
+#graph_solo(T, dt, method)
 
-gif_solo(T, dt, method)
+#gif_solo(T, dt, method)
 
 #heat_map_2d(T, dt, method)
 

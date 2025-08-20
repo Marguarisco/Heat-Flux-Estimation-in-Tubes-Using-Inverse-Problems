@@ -51,7 +51,7 @@ def main():
 
 
     np.savez_compressed(
-        path + method_arquive + f'_{radial_size}_{angular_size}_{simulation_time}_dt.npz', 
+        path + method_arquive + f'_{radial_size}_{angular_size}_{simulation_time}.npz', 
         temperaturas=results,
         running_time = running_time,
         running_time_process = running_time_process,
