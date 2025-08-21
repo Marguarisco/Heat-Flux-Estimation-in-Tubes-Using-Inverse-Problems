@@ -243,7 +243,11 @@ def adi_method(simulation_time, args):
     T_ext_history = np.zeros((simulation_time, angular_size, radial_size), dtype=np.float64)
     T_ext_history[0, :, :] = current_temp
 
-    while time_step < simulation_time:
+    tol_steady_state = 1e-4
+    diff = 1.0
+    previous_temp = np.zeros_like(current_temp)
+
+    while time_step < simulation_time and diff > tol_steady_state:
         
 
         for _ in range(1):
@@ -265,6 +269,11 @@ def adi_method(simulation_time, args):
 
         # Record the external temperature at the boundary
         T_ext_history[time_step, :, :] = current_temp
+        
+
+        diff = np.max(np.abs(current_temp - previous_temp))
+        copy_arrays(previous_temp, current_temp)
+
         time_step += 1
 
     return T_ext_history[:time_step, :], dt

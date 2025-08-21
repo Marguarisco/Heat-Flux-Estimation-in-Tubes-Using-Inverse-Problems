@@ -525,7 +525,7 @@ def gif_comparison_analitic_all(T_explicit, T_implicit, T_adi, dt):
     # --- 2. Otimização e Configuração da Animação ---
     # Define de quantos em quantos passos de tempo um quadro será salvo no GIF.
     # Valores maiores = geração mais rápida, arquivo menor, mas animação menos fluida.
-    PASSO_ANIMACAO = 40  # Salva 1 quadro a cada 40 passos de tempo
+    PASSO_ANIMACAO = 100  # Salva 1 quadro a cada 40 passos de tempo
 
     # Garante que a animação não tente acessar um índice inexistente
     num_passos_tempo_total = min(T_explicit.shape[0], dados_analitico.shape[1])

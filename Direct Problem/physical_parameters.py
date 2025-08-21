@@ -14,7 +14,7 @@ def physical_parameters(radial_size, angular_size):
 
     h_conv = 25.0
     heat_flux = ((-2000.0) * (angular_space / np.pi) ** 2) + 2000.0  
-    heat_flux = np.ones(angular_size) * 1000
+    #heat_flux = np.ones(angular_size) * 1000
 
     thermal_conductivity = 201.0  
     specific_heat = 900.0  

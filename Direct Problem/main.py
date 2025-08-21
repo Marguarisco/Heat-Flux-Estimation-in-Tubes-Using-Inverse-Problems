@@ -3,10 +3,10 @@ import numpy as np
 import time
 
 def main():
-    simulation_time = 6000
+    simulation_time = 1000000
 
-    radial_size = 25
-    angular_size = 3
+    radial_size = 9
+    angular_size = 80
 
     args = physical_parameters(radial_size, angular_size)
 
@@ -77,7 +77,7 @@ def main():
     print("Arquivo salvo com sucesso!")
 
 
-method = 'E'
+method = 'ADI'
 results = main()
 
     
