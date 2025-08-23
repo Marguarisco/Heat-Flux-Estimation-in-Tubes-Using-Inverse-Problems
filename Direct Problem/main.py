@@ -3,10 +3,14 @@ import numpy as np
 import time
 
 def main():
-    simulation_time = 1000000
+    method = 'adi'
 
-    radial_size = 9
-    angular_size = 80
+    #Lembrar de muda o fluxheat caso seja diferente!!
+
+    max_time_steps = 6000
+
+    radial_size = 25 #9
+    angular_size = 3 #80
 
     args = physical_parameters(radial_size, angular_size)
 
@@ -15,7 +19,7 @@ def main():
     if method == 'I':
         from Implicit_Method import implicit_method
         print("Iniciando a simulação...")
-        results, dt = implicit_method(simulation_time, args)
+        results, dt = implicit_method(max_time_steps, args)
 
         method_arquive = "resultados_implicit_completo"
         print("Simulação concluída.")
@@ -23,7 +27,7 @@ def main():
     elif method == 'E':
         from Explicit_Method import explicit_method
         print("Iniciando a simulação...")
-        results, dt = explicit_method(simulation_time, args)
+        results, dt = explicit_method(max_time_steps, args)
 
         method_arquive = "resultados_explicit_completo"
         print("Simulação concluída.")
@@ -31,7 +35,7 @@ def main():
     else:
         from ADI_Method import adi_method
         print("Iniciando a simulação...")
-        results, dt = adi_method(simulation_time, args)
+        results, dt = adi_method(max_time_steps, args)
 
         method_arquive = "resultados_adi_completo"
         print("Simulação concluída.")
@@ -51,7 +55,7 @@ def main():
 
 
     np.savez_compressed(
-        path + method_arquive + f'_{radial_size}_{angular_size}_{simulation_time}.npz', 
+        path + method_arquive + f'_{radial_size}_{angular_size}_{max_time_steps}.npz', 
         temperaturas=results,
         running_time = running_time,
         running_time_process = running_time_process,
@@ -77,7 +81,7 @@ def main():
     print("Arquivo salvo com sucesso!")
 
 
-method = 'ADI'
+
 results = main()
 
     

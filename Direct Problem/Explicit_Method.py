@@ -3,7 +3,7 @@ import pandas as pd
 import numba
 
 @numba.jit(nopython=True, fastmath=True)
-def explicit_method(simulation_time, args):
+def explicit_method(max_time_steps, args):
 
     temperature_args, spacial_args, material_args, flux_args = args
 
@@ -34,11 +34,11 @@ def explicit_method(simulation_time, args):
     beta_I = 2 * dr * h_conv / thermal_conductivity
     gamma_I = (gamma_r[-1] + gamma_rr) * beta_I 
 
-    T_ext_history = np.zeros((simulation_time, angular_size, radial_size), dtype=np.float64)
+    T_ext_history = np.zeros((max_time_steps, angular_size, radial_size), dtype=np.float64)
     T_ext_history[0, :, :] = current_temp
 
     time_step = 1
-    while time_step < simulation_time:
+    while time_step < max_time_steps:
         for _ in range(dt_all/dt):
             for j in range(angular_size):
                 for i in range(radial_size):

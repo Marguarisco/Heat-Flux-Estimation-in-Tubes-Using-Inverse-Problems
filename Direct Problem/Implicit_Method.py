@@ -2,7 +2,7 @@ import numpy as np
 import numba
 
 @numba.jit(nopython=True, fastmath=True)
-def implicit_method(simulation_time, args):
+def implicit_method(max_time_steps, args):
 
     temperature_args, spacial_args, material_args, flux_args = args
 
@@ -80,11 +80,11 @@ def implicit_method(simulation_time, args):
     
         coefficent_vector[i,position_theta] = - gamma_tt_raio
 
-    T_ext_history = np.zeros((simulation_time, angular_size, radial_size), dtype=np.float64)
+    T_ext_history = np.zeros((max_time_steps, angular_size, radial_size), dtype=np.float64)
     T_ext_history[0, :, :] = current_temp
 
     time_step = 1
-    while time_step < simulation_time:
+    while time_step < max_time_steps:
         
 
         for _ in range(1):

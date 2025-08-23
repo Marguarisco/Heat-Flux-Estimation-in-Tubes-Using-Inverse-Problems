@@ -62,15 +62,15 @@ def solve_tridiagonal_system(
 @numba.jit(nopython=True, fastmath=True, cache=True)
 def solve_implicit_radial(
     current_temp: np.ndarray, 
-    psi_tt: np.ndarray, 
+    gamma_tt: np.ndarray, 
     main_diag_r: np.ndarray, 
     upper_diag_r: np.ndarray, 
     lower_diag_r: np.ndarray, 
     gamma_0: np.ndarray, 
     gamma_j: float, 
     external_temp: float, 
-    num_theta: int, 
-    num_r: int, 
+    angular_size: int, 
+    radial_size: int, 
     new_temp: np.ndarray, 
     rhs_r: np.ndarray
 ) -> np.ndarray:
@@ -79,15 +79,15 @@ def solve_implicit_radial(
 
     Parameters:
     current_temp (np.ndarray): Current temperature matrix.
-    psi_tt (np.ndarray): Coefficient array for theta-direction terms.
+    gamma_tt (np.ndarray): Coefficient array for theta-direction terms.
     main_diag_r (np.ndarray): Main diagonal for radial tridiagonal systems.
     upper_diag_r (np.ndarray): Upper diagonal for radial tridiagonal systems.
     lower_diag_r (np.ndarray): Lower diagonal for radial tridiagonal systems.
     gamma_0 (np.ndarray): Boundary condition parameter at r=0.
     gamma_j (float): Boundary condition parameter at r=r_ext.
     external_temp (float): External temperature boundary condition.
-    num_theta (int): Number of theta divisions.
-    num_r (int): Number of radial divisions.
+    angular_size (int): Number of theta divisions.
+    radial_size (int): Number of radial divisions.
     new_temp (np.ndarray): Array to store the new temperatures.
     rhs_r (np.ndarray): Right-hand side vector for radial systems.
 
@@ -95,42 +95,42 @@ def solve_implicit_radial(
     np.ndarray: Updated temperature matrix after radial implicit solve.
     """
 
-    for j in range(num_theta):
-        prev_j = (j - 1) % num_theta
-        next_j = (j + 1) % num_theta
+    for j in range(angular_size):
+        prev_j = (j - 1) % angular_size
+        next_j = (j + 1) % angular_size
 
         # Boundary condition at r = 0
-        rhs_r[0] = (-gamma_0[j] + psi_tt[0] * current_temp[prev_j, 0]
-                   + (1 - 2 * psi_tt[0]) * current_temp[j, 0]
-                   + psi_tt[0] * current_temp[next_j, 0])
+        rhs_r[0] = (-gamma_0[j] + gamma_tt[0] * current_temp[prev_j, 0]
+                    + (1 - 2 * gamma_tt[0]) * current_temp[j, 0]
+                    + gamma_tt[0] * current_temp[next_j, 0])
 
         # Internal points
-        rhs_r[1:num_r - 1] = (psi_tt[1:num_r - 1] * current_temp[prev_j, 1:num_r - 1]
-                              + (1 - 2 * psi_tt[1:num_r - 1]) * current_temp[j, 1:num_r - 1]
-                              + psi_tt[1:num_r - 1] * current_temp[next_j, 1:num_r - 1])
+        rhs_r[1:radial_size - 1] = (gamma_tt[1:radial_size - 1] * current_temp[prev_j, 1:radial_size - 1]
+                    + (1 - 2 * gamma_tt[1:radial_size - 1]) * current_temp[j, 1:radial_size - 1]
+                    + gamma_tt[1:radial_size - 1] * current_temp[next_j, 1:radial_size - 1])
 
         # Boundary condition at r = r_ext
         rhs_r[-1] = (-gamma_j * external_temp
-                    + psi_tt[-1] * current_temp[prev_j, -1]
-                    + (1 - 2 * psi_tt[-1]) * current_temp[j, -1]
-                    + psi_tt[-1] * current_temp[next_j, -1])
+                    + gamma_tt[-1] * current_temp[prev_j, -1]
+                    + (1 - 2 * gamma_tt[-1]) * current_temp[j, -1]
+                    + gamma_tt[-1] * current_temp[next_j, -1])
 
         # Solve the tridiagonal system
-        new_temp[j, :] = solve_tridiagonal_system(lower_diag_r, main_diag_r, upper_diag_r, rhs_r, num_r)
+        new_temp[j, :] = solve_tridiagonal_system(lower_diag_r, main_diag_r, upper_diag_r, rhs_r, radial_size)
 
     return new_temp
 
 @numba.jit(nopython=True, fastmath=True, cache=True)
 def solve_implicit_theta(
     current_temp: np.ndarray, 
-    psi_r: np.ndarray, 
-    psi_rr: float, 
-    psi_tt: np.ndarray, 
+    gamma_r: np.ndarray, 
+    gamma_rr: float, 
+    gamma_tt: np.ndarray, 
     gamma_0: np.ndarray, 
     gamma_j: float, 
     external_temp: float, 
-    num_theta: int, 
-    num_r: int, 
+    angular_size: int, 
+    radial_size: int, 
     new_temp: np.ndarray, 
     rhs_theta: np.ndarray, 
     main_diag_theta: np.ndarray, 
@@ -141,14 +141,14 @@ def solve_implicit_theta(
 
     Parameters:
     current_temp (np.ndarray): Current temperature matrix.
-    psi_r (np.ndarray): Coefficient array for radial-direction terms.
-    psi_rr (float): Coefficient for radial diffusion.
-    psi_tt (np.ndarray): Coefficient array for theta-direction terms.
+    gamma_r (np.ndarray): Coefficient array for radial-direction terms.
+    gamma_rr (float): Coefficient for radial diffusion.
+    gamma_tt (np.ndarray): Coefficient array for theta-direction terms.
     gamma_0 (np.ndarray): Boundary condition parameter at r=0.
     gamma_j (float): Boundary condition parameter at r=r_ext.
     external_temp (float): External temperature boundary condition.
-    num_theta (int): Number of theta divisions.
-    num_r (int): Number of radial divisions.
+    angular_size (int): Number of theta divisions.
+    radial_size (int): Number of radial divisions.
     new_temp (np.ndarray): Array to store the new temperatures.
     rhs_theta (np.ndarray): Right-hand side vector for theta systems.
     main_diag_theta (np.ndarray): Main diagonal for theta tridiagonal systems.
@@ -157,34 +157,36 @@ def solve_implicit_theta(
     Returns:
     np.ndarray: Updated temperature matrix after theta implicit solve.
     """
-    
-    for i in range(num_r):
-        radius_index = i % num_r
+
+    for i in range(radial_size):
+        radius_index = i % radial_size
 
         # Configure the diagonals for the tridiagonal system
-        main_diag_theta.fill(1 + (2 * psi_tt[radius_index]))
-        aux_diag_theta.fill(-psi_tt[radius_index])
+        main_diag_theta.fill(1 + (2 * gamma_tt[radius_index]))
+        aux_diag_theta.fill(-gamma_tt[radius_index])
 
-        if i != 0 and i != num_r - 1:
-            rhs_theta[:] = (-psi_r[radius_index] + psi_rr) * current_temp[:, i - 1] \
-                           + (1 - (2 * psi_rr)) * current_temp[:, i] \
-                           + (psi_r[radius_index] + psi_rr) * current_temp[:, i + 1]
+        if i != 0 and i != radial_size - 1:
+            rhs_theta[:] = ((-gamma_r[radius_index] + gamma_rr) * current_temp[:, i - 1]
+                        + (1 - (2 * gamma_rr)) * current_temp[:, i]
+                        + (gamma_r[radius_index] + gamma_rr) * current_temp[:, i + 1])
+
         elif i == 0:  # Boundary condition at r=0
-            rhs_theta[:] = -gamma_0[:] \
-                           + (1 - (2 * psi_rr)) * current_temp[:, i] \
-                           + (2 * psi_rr) * current_temp[:, i + 1]
-        elif i == num_r - 1:  # Boundary condition at r=r_ext
-            rhs_theta[:] = -gamma_j * external_temp \
-                           + (1 + gamma_j - (2 * psi_rr)) * current_temp[:, i] \
-                           + (2 * psi_rr) * current_temp[:, i - 1]
+            rhs_theta[:] = (-gamma_0[:]
+                        + (1 - (2 * gamma_rr)) * current_temp[:, i]
+                        + (2 * gamma_rr) * current_temp[:, i + 1])
+
+        elif i == radial_size - 1:  # Boundary condition at r=r_ext
+            rhs_theta[:] = (-gamma_j * external_temp
+                        + (1 + gamma_j - (2 * gamma_rr)) * current_temp[:, i]
+                        + (2 * gamma_rr) * current_temp[:, i - 1])
 
         # Adjust boundary conditions for theta
-        rhs_theta[0] += psi_tt[radius_index] * current_temp[0, i]
-        rhs_theta[-1] += psi_tt[radius_index] * current_temp[-1, i]
+        rhs_theta[0] += gamma_tt[radius_index] * current_temp[0, i]
+        rhs_theta[-1] += gamma_tt[radius_index] * current_temp[-1, i]
 
         # Solve the tridiagonal system
         new_temp[:, i] = solve_tridiagonal_system(
-            aux_diag_theta, main_diag_theta, aux_diag_theta, rhs_theta, num_theta
+            aux_diag_theta, main_diag_theta, aux_diag_theta, rhs_theta, angular_size
         )
 
     return new_temp
@@ -192,8 +194,8 @@ def solve_implicit_theta(
 @numba.jit(nopython=True, fastmath=True)
 def ADIMethod(
     heat_flux: np.ndarray,
-    num_r: int = 9, 
-    num_theta: int = 80, 
+    radial_size: int = 9, 
+    angular_size: int = 80, 
     max_time_steps: int = 19000,
     dt: float = 1 
 ) -> np.ndarray:
@@ -202,16 +204,16 @@ def ADIMethod(
 
     Parameters:
     heat_flux (np.ndarray): Heat flux distribution as a function of theta. 
-    num_r (int): Number of radial divisions. Default is 9.
-    num_theta (int): Number of angular divisions. Default is 20.
-    max_time_steps (int): Maximum number of time steps. Default is 19000.
+    radial_size (int): Number of radial divisions. Default is 9.
+    angular_size (int): Number of angular divisions. Default is 20.
+    max_time_steps (int): Maximum number of time steps.
     dt (float): Time step size. Default is 0.1 seconds.
 
     Returns:
     np.ndarray: History of external temperature at the boundary for each theta over time.
     """
     # PHYSICAL PARAMETERS
-    r_inner, r_outer = 0.1, 0.15  # Inner and outer radii (meters)
+    r_inner, r_outer = 0.1, 0.15  # Inner and outer rad (meters)
     T_inner, T_outer, T_tube = 300.0, 300.0, 300.0  # Temperatures in Kelvin
     h_conv = 25.0  # Convective heat transfer coefficient (W/m²K)
     thermal_conductivity = 201.0  # Thermal conductivity (W/mK)
@@ -220,76 +222,74 @@ def ADIMethod(
     thermal_diffusivity = thermal_conductivity / (specific_heat * density)  # Thermal diffusivity (m²/s)
 
     # SPACING
-    dr = (r_outer - r_inner) / (num_r - 1)  # Radial step size
-    dtheta = 2 * np.pi / num_theta  # Angular step size (radians)
+    dr = (r_outer - r_inner) / (radial_size - 1)  # Radial step size
+    dtheta = 2 * np.pi / angular_size  # Angular step size (radians)
 
+    dt_all = 1.0
 
-    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    
     # MESH GRID
-    radii = np.linspace(r_inner, r_outer, num_r)
+    radial_space = np.linspace(r_inner, r_outer, radial_size)
 
     # TEMPERATURE MATRICES
-    current_temp = np.ones((num_theta, num_r)) * T_tube
+    current_temp = np.ones((angular_size, radial_size)) * T_tube
     new_temp = np.zeros_like(current_temp)
 
     # AUXILIARY VECTORS
-    rhs_r = np.zeros(num_r, dtype=np.float64)
-    rhs_theta = np.zeros(num_theta, dtype=np.float64)
+    rhs_r = np.zeros(radial_size, dtype=np.float64)
+    rhs_theta = np.zeros(angular_size, dtype=np.float64)
 
     # Coefficients for the ADI method
-    psi_r = thermal_diffusivity * dt / (4 * dr * radii)
-    psi_rr = thermal_diffusivity * dt / (2 * (dr ** 2))
-    psi_tt = thermal_diffusivity * dt / (dtheta ** 2) / (2 * radii ** 2)
+    gamma_r = thermal_diffusivity * dt / (4 * dr * radial_space)
+    gamma_rr = thermal_diffusivity * dt / (2 * (dr ** 2))
+    gamma_tt = thermal_diffusivity * dt / ((dtheta ** 2) * (2 * radial_space ** 2))
 
     # Boundary condition parameters
     beta_j = (2 * dr * h_conv) / thermal_conductivity
-    gamma_j = (-psi_rr - psi_r[-1]) * beta_j 
+    gamma_j = (-gamma_rr - gamma_r[-1]) * beta_j 
 
-    time_step = 0
+
 
     # Diagonals for the radial direction
-    aux_diag_r = -psi_rr * np.ones(num_r - 1)
-    main_diag_r = np.ones(num_r) * (1 + 2 * psi_rr)
-    main_diag_r[-1] = 1 + 2 * psi_rr - gamma_j
-    upper_diag_r = aux_diag_r - psi_r[:num_r - 1]
-    upper_diag_r[0] = -2 * psi_rr  # Adjust for boundary condition at r=0
-    lower_diag_r = aux_diag_r + psi_r[1:num_r]
-    lower_diag_r[-1] = -2 * psi_rr  # Adjust for boundary condition at r=r_ext
+    aux_diag_r = (-gamma_rr * np.ones(radial_size - 1))
+    main_diag_r = np.ones(radial_size) * (1 + (2 * gamma_rr))
+    main_diag_r[-1] = (1 + (2 * gamma_rr) - gamma_j)
+    upper_diag_r = aux_diag_r - gamma_r[:radial_size - 1]
+    upper_diag_r[0] = (-2 * gamma_rr)  # Adjust for boundary condition at r=0
+    lower_diag_r = aux_diag_r + gamma_r[1:radial_size]
+    lower_diag_r[-1] = (-2 * gamma_rr)  # Adjust for boundary condition at r=r_ext
 
-    # Diagonals for the theta direction
-    main_diag_theta = np.ones(num_theta)
-    aux_diag_theta = np.zeros(num_theta - 1)
+    # Diagonals for the angular direction
+    main_diag_theta = np.ones(angular_size)
+    aux_diag_theta = np.zeros(angular_size - 1)
 
     # History of external temperatures
-    T_ext_history = np.zeros((max_time_steps, num_theta), dtype=np.float64)
+    T_ext_history = np.zeros((max_time_steps, angular_size), dtype=np.float64)
+
+    time_step = 1
 
     while time_step < max_time_steps:
-        time_step += 1
+        beta_0 = (2 * dr * heat_flux[time_step]) / thermal_conductivity
+        gamma_0 = (gamma_r[0] - gamma_rr) * beta_0
 
-        beta_0 = (2 * dr * heat_flux[time_step - 1]) / thermal_conductivity
-        gamma_0 = (psi_r[0] - psi_rr) * beta_0
-
-        for _ in range(1/dt):
-
+        for _ in range(dt_all/dt):
             # Solve the implicit radial step
             new_temp = solve_implicit_radial(
-                current_temp, psi_tt, main_diag_r, upper_diag_r, lower_diag_r, 
-                gamma_0, gamma_j, T_outer, num_theta, num_r, new_temp, rhs_r
+                current_temp, gamma_tt, main_diag_r, upper_diag_r, lower_diag_r, 
+                gamma_0, gamma_j, T_outer, angular_size, radial_size, new_temp, rhs_r
             )
             copy_arrays(current_temp, new_temp)
-            
+
             # Solve the implicit theta step
             new_temp = solve_implicit_theta(
-                current_temp, psi_r, psi_rr, psi_tt, gamma_0, gamma_j, 
-                T_outer, num_theta, num_r, new_temp, rhs_theta, 
+                current_temp, gamma_r, gamma_rr, gamma_tt, gamma_0, gamma_j, 
+                T_outer, angular_size, radial_size, new_temp, rhs_theta, 
                 main_diag_theta, aux_diag_theta
             )
             copy_arrays(current_temp, new_temp)
 
         # Record the external temperature at the boundary
-        T_ext_history[time_step - 1, :] = current_temp[:, -1]
-
+        T_ext_history[time_step, :] = current_temp[:, -1]
+        time_step += 1
     return T_ext_history[:time_step, :]
 
 if __name__ == '__main__':

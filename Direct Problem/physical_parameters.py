@@ -13,8 +13,10 @@ def physical_parameters(radial_size, angular_size):
     T_inner, T_outer, T_tube = 300.0, 300.0, 300.0  #in Kelvin
 
     h_conv = 25.0
-    heat_flux = ((-2000.0) * (angular_space / np.pi) ** 2) + 2000.0  
-    #heat_flux = np.ones(angular_size) * 1000
+    if radial_size == 25 and angular_size == 3:
+        heat_flux = np.ones(angular_size) * 1000
+    else:
+        heat_flux = ((-2000.0) * (angular_space / np.pi) ** 2) + 2000.0
 
     thermal_conductivity = 201.0  
     specific_heat = 900.0  

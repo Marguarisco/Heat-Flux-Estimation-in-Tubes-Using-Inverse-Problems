@@ -101,13 +101,13 @@ def solve_implicit_radial(
 
         # Boundary condition at r = 0
         rhs_r[0] = (-gamma_0[j] + gamma_tt[0] * current_temp[prev_j, 0]
-                   + (1 - 2 * gamma_tt[0]) * current_temp[j, 0]
-                   + gamma_tt[0] * current_temp[next_j, 0])
+                    + (1 - 2 * gamma_tt[0]) * current_temp[j, 0]
+                    + gamma_tt[0] * current_temp[next_j, 0])
 
         # Internal points
         rhs_r[1:radial_size - 1] = (gamma_tt[1:radial_size - 1] * current_temp[prev_j, 1:radial_size - 1]
-                              + (1 - 2 * gamma_tt[1:radial_size - 1]) * current_temp[j, 1:radial_size - 1]
-                              + gamma_tt[1:radial_size - 1] * current_temp[next_j, 1:radial_size - 1])
+                    + (1 - 2 * gamma_tt[1:radial_size - 1]) * current_temp[j, 1:radial_size - 1]
+                    + gamma_tt[1:radial_size - 1] * current_temp[next_j, 1:radial_size - 1])
 
         # Boundary condition at r = r_ext
         rhs_r[-1] = (-gamma_j * external_temp
@@ -157,7 +157,7 @@ def solve_implicit_theta(
     Returns:
     np.ndarray: Updated temperature matrix after theta implicit solve.
     """
-    
+
     for i in range(radial_size):
         radius_index = i % radial_size
 
@@ -166,17 +166,19 @@ def solve_implicit_theta(
         aux_diag_theta.fill(-gamma_tt[radius_index])
 
         if i != 0 and i != radial_size - 1:
-            rhs_theta[:] = (-gamma_r[radius_index] + gamma_rr) * current_temp[:, i - 1] \
-                           + (1 - (2 * gamma_rr)) * current_temp[:, i] \
-                           + (gamma_r[radius_index] + gamma_rr) * current_temp[:, i + 1]
+            rhs_theta[:] = ((-gamma_r[radius_index] + gamma_rr) * current_temp[:, i - 1]
+                        + (1 - (2 * gamma_rr)) * current_temp[:, i]
+                        + (gamma_r[radius_index] + gamma_rr) * current_temp[:, i + 1])
+            
         elif i == 0:  # Boundary condition at r=0
-            rhs_theta[:] = -gamma_0[:] \
-                           + (1 - (2 * gamma_rr)) * current_temp[:, i] \
-                           + (2 * gamma_rr) * current_temp[:, i + 1]
+            rhs_theta[:] = (-gamma_0[:]
+                        + (1 - (2 * gamma_rr)) * current_temp[:, i]
+                        + (2 * gamma_rr) * current_temp[:, i + 1])
+            
         elif i == radial_size - 1:  # Boundary condition at r=r_ext
-            rhs_theta[:] = -gamma_j * external_temp \
-                           + (1 + gamma_j - (2 * gamma_rr)) * current_temp[:, i] \
-                           + (2 * gamma_rr) * current_temp[:, i - 1]
+            rhs_theta[:] = (-gamma_j * external_temp
+                        + (1 + gamma_j - (2 * gamma_rr)) * current_temp[:, i]
+                        + (2 * gamma_rr) * current_temp[:, i - 1])
 
         # Adjust boundary conditions for theta
         rhs_theta[0] += gamma_tt[radius_index] * current_temp[0, i]
@@ -190,7 +192,7 @@ def solve_implicit_theta(
     return new_temp
 
 @numba.jit(nopython=True, fastmath=True)
-def adi_method(simulation_time, args):
+def adi_method(max_time_steps, args):
 
     temperature_args, spacial_args, material_args, flux_args = args
 
@@ -202,12 +204,13 @@ def adi_method(simulation_time, args):
     thermal_diffusivity = thermal_conductivity / (specific_heat * density)  
 
     dt = 0.1
+    dt_all = 0.1
 
-    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     # TEMPERATURE MATRICES
     current_temp = np.ones((angular_size, radial_size)) * T_tube
     new_temp = np.zeros_like(current_temp)
+    previous_temp = np.zeros_like(current_temp)
 
     # AUXILIARY VECTORS
     rhs_r = np.zeros(radial_size, dtype=np.float64)
@@ -226,31 +229,27 @@ def adi_method(simulation_time, args):
     gamma_j = (-gamma_rr - gamma_r[-1]) * beta_j 
 
     # Diagonals for the radial direction
-    lower_diag_r = -gamma_rr * np.ones(radial_size - 1)
-    main_diag_r = np.ones(radial_size) * (1 + 2 * gamma_rr)
-    main_diag_r[-1] = 1 + 2 * gamma_rr - gamma_j
-    upper_diag_r = lower_diag_r - gamma_r[:radial_size - 1]
-    upper_diag_r[0] = -2 * gamma_rr  # Adjust for boundary condition at r=0
-    lower_diag_r = lower_diag_r + gamma_r[1:radial_size]
-    lower_diag_r[-1] = -2 * gamma_rr  # Adjust for boundary condition at r=r_ext
+    aux_diag_r = (-gamma_rr * np.ones(radial_size - 1))
+    main_diag_r = np.ones(radial_size) * (1 + (2 * gamma_rr))
+    main_diag_r[-1] = (1 + (2 * gamma_rr) - gamma_j)
+    upper_diag_r = aux_diag_r - gamma_r[:radial_size - 1]
+    upper_diag_r[0] = (-2 * gamma_rr)  # Adjust for boundary condition at r=0
+    lower_diag_r = aux_diag_r + gamma_r[1:radial_size]
+    lower_diag_r[-1] = (-2 * gamma_rr)  # Adjust for boundary condition at r=r_ext
 
-    # Diagonals for the theta direction
+    # Diagonals for the angular direction
     main_diag_theta = np.ones(angular_size)
     aux_diag_theta = np.zeros(angular_size - 1)
 
-    # History of external temperatures
     time_step = 1
-    T_ext_history = np.zeros((simulation_time, angular_size, radial_size), dtype=np.float64)
+    T_ext_history = np.zeros((max_time_steps, angular_size, radial_size), dtype=np.float64)
     T_ext_history[0, :, :] = current_temp
-
     tol_steady_state = 1e-4
     diff = 1.0
-    previous_temp = np.zeros_like(current_temp)
 
-    while time_step < simulation_time and diff > tol_steady_state:
-        
+    while time_step < max_time_steps and diff > tol_steady_state:
 
-        for _ in range(1):
+        for _ in range(dt_all/dt):
 
             # Solve the implicit radial step
             new_temp = solve_implicit_radial(
@@ -258,7 +257,7 @@ def adi_method(simulation_time, args):
                 gamma_0, gamma_j, T_outer, angular_size, radial_size, new_temp, rhs_r
             )
             copy_arrays(current_temp, new_temp)
-            
+        
             # Solve the implicit theta step
             new_temp = solve_implicit_theta(
                 current_temp, gamma_r, gamma_rr, gamma_tt, gamma_0, gamma_j, 
@@ -277,31 +276,3 @@ def adi_method(simulation_time, args):
         time_step += 1
 
     return T_ext_history[:time_step, :], dt
-
-if __name__ == '__main__':
-    import pandas as pd
-
-    '''Nr = 9
-    Ntheta = 80
-    N_max = 19000
-
-    # Define the theta distribution
-    Theta = np.linspace(-np.pi, np.pi, Ntheta, endpoint=False) 
-
-    heat_flux = ((-2000.0) * (Theta / np.pi) ** 2) + 2000.0
-    periodic_heat_flux = np.zeros((N_max, Ntheta), dtype=np.float64)
-
-    for i in range(N_max):
-        periodic_heat_flux[i] = heat_flux * (1 + np.sin(np.pi * i / N_max))
-
-    # Execute the ADI method
-    T_ext_history = ADIMethod(periodic_heat_flux, Nr, Ntheta, N_max)
-
-    # Create a DataFrame to store the results
-    df = pd.DataFrame(T_ext_history, columns=[f'Theta {i}' for i in range(Ntheta)])
-    csv_filename = f'Transient Periodic File/Temperature_Boundary_External_{Nr}_{Ntheta}_{N_max}.csv'
-
-    # Save the results to the CSV file
-    df.to_csv(csv_filename, index=False)
-    print(f"Results saved to {csv_filename}")'''
-
