@@ -1,20 +1,52 @@
-from Problema_Inverso_Permanente import run_optimization
+from Inverse_problem import run_optimization
 import matplotlib.pyplot as plt
 import numpy as np
 from concurrent import futures
 import pandas as pd
 import multiprocessing as mp
 import os
+from utils import run_experiment, load_or_generate_random_values
 
+path = 'Permanent File/data/'
 # Define the values of lambda and deviation
 deviations = [0.1, 0.5]
 lambdas = np.logspace(-14, 0, num=15) 
 
-summary_results = []
-detailed_results = []
-optimization_history = []
+radial_size = 9
+angular_size = 80
+
+num_sensors = 20
+max_iterations = 3000
+
 
 if __name__ == '__main__':
+    filename = path + f"Direct_Problem_{radial_size}_{angular_size}_{max_iterations}.npz"
+
+    if os.path.exists(filename):
+        # If the file exists, load the saved array
+        values = np.load(filename)['estimated_temperature']
+        print(f"Loaded array from {filename} and shape {values.shape}")
+
+    else:
+        # If the file does not exist, generate a new array and save it
+        run_experiment(radial_size, angular_size, max_iterations)
+        values = np.load(filename)['estimated_temperature']
+        print(f"Made a new simulation and saved to {filename} with shape {values.shape}")
+
+    T_real = values
+
+    reduction_factor = int(angular_size / num_sensors)
+    T_real = T_real[::reduction_factor]
+    
+    shape = (num_sensors, radial_size)
+
+    filename = path + f'random_values_{angular_size}.npy'
+    random_values = load_or_generate_random_values(angular_size, filename)
+
+    summary_results = []
+    detailed_results = []
+    optimization_history = []   
+
     # Get the number of available CPU cores
     num_processes = mp.cpu_count()
 

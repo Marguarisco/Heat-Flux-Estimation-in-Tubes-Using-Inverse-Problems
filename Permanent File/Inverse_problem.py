@@ -1,4 +1,4 @@
-from Problema_Direto_Permanente import ADIMethod
+from Direct_problem import ADIMethod
 import numpy as np
 import pandas as pd
 import time
@@ -7,49 +7,7 @@ import multiprocessing as mp
 import os
 from typing import Tuple, List
 from numba import njit
-
-@njit
-def tikhonov_regularization(q: np.ndarray, use_differences: bool = True) -> float:
-    """
-    Calculates the Tikhonov regularization term.
-
-    Parameters:
-    q (np.ndarray): Parameter vector.
-    use_differences (bool): Whether to use differences of q for regularization.
-
-    Returns:
-    float: Regularization term.
-    """
-    if not use_differences:
-        return np.sum(q ** 2)
-    else:
-        diffs = np.diff(q)
-        return np.sum(diffs ** 2)
-@njit    
-def calculate_jacobian(q: np.ndarray, simu_temp: np.ndarray, pert_temps: np.ndarray, delta: float = 1e-8) -> np.ndarray:
-    """
-    Calculates the Jacobian J = dT/dq using finite differences.
-
-    Parameters:
-    q (np.ndarray): Current parameter vector.
-    simu_temp (np.ndarray): Real temperature data.
-    temps (np.ndarray): Simulated temperatures.
-    delta (float): Small perturbation for finite difference approximation.
-
-    Returns:
-    np.ndarray: Jacobian vector J = [dT/dq_1, dT/dq_2, ..., dT/dq_n].
-    """
-    
-    n_params = len(q)
-    m_params = len(simu_temp)
-    J = np.zeros((m_params, n_params), dtype=np.float64)
-
-    for j in range(n_params):
-        dq = q[j] * delta
-        
-        J[:,j] = (pert_temps[j] - simu_temp) / dq #dT/dq
-
-    return J
+from utils import *
 
 def minimize_equation(T_real: np.ndarray, T_simulated: np.ndarray) -> float:
     """
@@ -79,7 +37,7 @@ def calculate_difference(args: Tuple[int, np.ndarray, np.ndarray, float, float, 
     # Perturb the q parameter at the given index
     q_modified = q_original.copy()
     dq = q_original[index] * delta
-    q_modified[index] += (dq)
+    q_modified[index] += dq
 
     # Simulate the temperature with the modified q
     T_q_delta = ADIMethod(q_modified)[:, -1]
@@ -209,25 +167,7 @@ def optimize_parameters(T_real: np.ndarray, q_initial: np.ndarray, lambda_regul:
     
     return q, final_minimize_value, final_tikhonov_value, T_simulated, df_results
 
-def load_or_generate_random_values(mesh_size: int, filename: str = 'random_values.npy') -> np.ndarray:
-    """
-    Loads random values from a file or generates them if the file does not exist.
 
-    Parameters:
-    mesh_size (int): Size of the random array to generate.
-    filename (str): Filename for saving/loading random values.
-
-    Returns:
-    np.ndarray: Array of random values.
-    """
-    if os.path.exists(filename):
-        # If the file exists, load the saved array
-        values = np.load(filename)
-    else:
-        # If the file does not exist, generate a new array and save it
-        values = np.random.normal(0, 1, mesh_size)
-        np.save(filename, values)
-    return values
 
 def run_optimization(lambda_regul: float, executor: futures.Executor, 
     deviation: float = 0.1) -> Tuple[np.ndarray, float, float, np.ndarray, pd.DataFrame]:
@@ -273,13 +213,6 @@ def run_optimization(lambda_regul: float, executor: futures.Executor,
 
     return optimized_q, minimized_value, tikhonov_val, temperature_simulated, optimization_results
 
-def initializer():
-    """
-    Initializer function to precompute ADIMethod for caching purposes.
-    """
-    # Dummy q to initialize and cache ADIMethod
-    q_dummy = np.ones(20, dtype=np.float64) * 100.0
-    ADIMethod(q_dummy)
 
 if __name__ == '__main__':
 

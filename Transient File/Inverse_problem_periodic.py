@@ -9,7 +9,6 @@ import multiprocessing as mp
 from typing import Tuple, List, Dict
 from utils import *
 
-
 def minimize_equation(T_real: np.ndarray, T_simulated: np.ndarray) -> float:
     """
     Calculates the difference between the real temperature and simulated temperature using Simpson's rule.

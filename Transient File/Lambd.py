@@ -45,7 +45,7 @@ if __name__ == '__main__':
     reduction_factor = int(mesh_size / num_sensors)
     T_real = T_real_df.iloc[:, ::reduction_factor]
     
-    shape = (experiment_time, T_real.shape[1], radial_size)
+    shape = (experiment_time, num_sensors, radial_size)
 
     # Load or generate random values
     filename = f'Transient File/data/random_values/random_values_{experiment_time}x{T_real.shape[1]}.npy'
