@@ -12,16 +12,16 @@ from utils import run_experiment, load_or_generate_random_values
 
 # Define the values of lambda and deviation
 #deviations = [0.1,0.5,1,5,10,50,100,250]
-#lambdas = np.logspace(-10, -5, num=10)
+#lambda_list = np.logspace(-10, -5, num=10)
 
 deviations = [0.0]
-lambdas = [0]
+lambda_list = [0]
 
 radial_size = 9
 angular_size = 80
 experiment_time = 1100
 
-num_sensors = 80
+num_sensors = 20
 max_iterations = 3000
 
 
@@ -39,18 +39,16 @@ if __name__ == '__main__':
         print(f"Made a new simulation and saved to {filename} with shape {values.shape}")
 
 
-    T_real_df = values
-
-    mesh_size = T_real_df.shape[1]
-    reduction_factor = int(mesh_size / num_sensors)
-    T_real = T_real_df.iloc[:, ::reduction_factor]
+    T_real = values
+    reduction_factor = int(angular_size / num_sensors)
+    T_real = T_real[:, ::reduction_factor]
     
     shape = (experiment_time, num_sensors, radial_size)
 
     # Load or generate random values
-    filename = f'Transient File/data/random_values/random_values_{experiment_time}x{T_real.shape[1]}.npy'
+    filename = f'Transient File/data/random_values/random_values_{experiment_time}x{num_sensors}.npy'
     random_values = load_or_generate_random_values(T_real.shape, filename)
-
+    
     summary_results = []
     detailed_results = []
     optimization_history = []
@@ -64,24 +62,27 @@ if __name__ == '__main__':
     with futures.ProcessPoolExecutor(max_workers=num_processes) as executor:
         # Iterate over each deviation value
         for deviation in deviations:
+            T_real += (deviation * random_values)
             # Iterate over each lambda value
-            for lambd in lambdas:
+            for lambda_regul in lambda_list:
                 # Print the current lambda and deviation being executed
-                print(f"Executing for Lambda: {lambd}, Deviation: {deviation}")
+                print(f"Executing for Lambda: {lambda_regul}, Deviation: {deviation}")
 
                 # Run the optimization process
-                parameters, val_minimize, val_tikhonov, temperature_simulated, optimization_results, cpu_time_used = run_optimization(
-                    T_real = T_real, 
-                    random_values = random_values,
+                args, cpu_time_used = run_optimization(
+                    T_real = T_real,
                     max_iterations = max_iterations,
-                    lambda_regul = lambd, 
+                    lambda_regul = lambda_regul,
                     executor = executor, 
                     deviation = deviation,
                     shape = shape)
                 
+                parameters, val_minimize, val_tikhonov, temperature_simulated, optimization_results = args
+
+                optimization_results.to_csv("optimization_results_transient.csv", index=False)
 
                 summary_results.append({
-                        'Lambda': lambd,
+                        'Lambda': lambda_regul,
                         'Deviation': deviation,
                         'Val_Tikhonov': val_tikhonov,
                         'Val_Minimize': val_minimize,
@@ -90,7 +91,7 @@ if __name__ == '__main__':
                 
                 for position in range(len(parameters)):
                     detailed_results.append({
-                        'Lambda': lambd,
+                        'Lambda': lambda_regul,
                         'Deviation': deviation,
                         'Position': position + 1,  # Inicia em 1
                         'parameters': parameters[position],

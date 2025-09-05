@@ -194,9 +194,9 @@ def solve_implicit_theta(
 @numba.jit(nopython=True, fastmath=True)
 def ADIMethod(
     heat_flux: np.ndarray,
-    radial_size: int, 
-    angular_size: int, 
-    max_time_steps: int = 19000
+    radial_size: int = 9, 
+    angular_size: int = 20, 
+    max_time_steps: int = 1e10
 ) -> np.ndarray:
     """
     Executes the Alternating Direction Implicit (ADI) method to solve the diffusion equation.
@@ -208,7 +208,7 @@ def ADIMethod(
     max_time_steps (int): Maximum number of time steps.
 
     Returns:
-    np.ndarray: History of external temperature at the boundary for each theta over time.
+    np.ndarray: Final temperature distribution matrix.
     """
     # PHYSICAL PARAMETERS
     r_inner, r_outer = 0.1, 0.15  # Inner and outer rad (meters)
@@ -223,7 +223,7 @@ def ADIMethod(
     dr = (r_outer - r_inner) / (radial_size - 1)  # Radial step size
     dtheta = 2 * np.pi / angular_size  # Angular step size (radians)
     dt = 0.1
-    dt_all = 1.0
+    dt_all = 1
 
     # MESH GRID
     radial_space = np.linspace(r_inner, r_outer, radial_size)
@@ -231,6 +231,7 @@ def ADIMethod(
     # TEMPERATURE MATRICES
     current_temp = np.ones((angular_size, radial_size)) * T_tube
     new_temp = np.zeros_like(current_temp)
+    previous_temp = np.zeros_like(current_temp)
 
     # AUXILIARY VECTORS
     rhs_r = np.zeros(radial_size, dtype=np.float64)
@@ -261,14 +262,14 @@ def ADIMethod(
     main_diag_theta = np.ones(angular_size)
     aux_diag_theta = np.zeros(angular_size - 1)
 
-    # History of external temperatures
-    T_ext_history = np.zeros((max_time_steps, angular_size), dtype=np.float64)
-
     time_step = 1
+    tol_steady_state = 1e-4
+    diff = 1.0
 
-    while time_step < max_time_steps:
+    while time_step < max_time_steps and diff > tol_steady_state:
 
         for _ in range(dt_all/dt):
+
             # Solve the implicit radial step
             new_temp = solve_implicit_radial(
                 current_temp, gamma_tt, main_diag_r, upper_diag_r, lower_diag_r, 
@@ -284,32 +285,9 @@ def ADIMethod(
             )
             copy_arrays(current_temp, new_temp)
             
-        # Record the external temperature at the boundary
-        T_ext_history[time_step, :] = current_temp[:, -1]
+        diff = np.max(np.abs(current_temp - previous_temp))
+        copy_arrays(previous_temp, current_temp)
+
         time_step += 1
-    return T_ext_history[:time_step, :]
 
-if __name__ == '__main__':
-    import pandas as pd
-
-    Nr = 9
-    Ntheta = 80
-    N_max = 19000 # Maximum number of time steps (arrive at steady state at 18240)
-
-    # Define the theta distribution
-    Theta = np.linspace(-np.pi, np.pi, Ntheta, endpoint=False) 
-
-    # Define the heat source as a quadratic function of Theta
-    heat_flux = ((-2000.0) * (Theta / np.pi) ** 2) + 2000.0
-
-    # Execute the ADI method
-    T_ext_history = ADIMethod(heat_flux, Nr, Ntheta, N_max)
-
-    # Create a DataFrame to store the results
-    df = pd.DataFrame(T_ext_history, columns=[f'Theta {i}' for i in range(Ntheta)])
-    csv_filename = f'Transient File/Temperature_Boundary_External_{Nr}_{Ntheta}_{N_max}.csv'
-
-    # Save the results to the CSV file
-    df.to_csv(csv_filename, index=False)
-    print(f"Results saved to {csv_filename}")
-
+    return current_temp

@@ -9,10 +9,9 @@ import multiprocessing as mp
 from typing import Tuple, List, Dict
 from utils import *
 
-
 def minimize_equation(T_real: np.ndarray, T_simulated: np.ndarray) -> float:
     """
-    Calculates the difference between the real temperature and simulated temperature using Simpson's rule.
+    Calculates the difference between the real temperature and simulated temperature.
 
     Parameters:
     T_real (np.ndarray): Real temperature data.
@@ -26,7 +25,7 @@ def minimize_equation(T_real: np.ndarray, T_simulated: np.ndarray) -> float:
 
     return np.sum(simps(diff, x=np.arange(T_real.shape[0]), axis=0))
 
-def calculate_difference(args: Tuple[int, np.ndarray, np.ndarray, float, float, float, tuple]) -> Tuple[float, int]:
+def calculate_difference(args: Tuple[int, np.ndarray, np.ndarray, float, float, float, tuple]) -> Tuple[float, int, np.ndarray]:
     """
     Calculates the difference in the objective function when a parameter is perturbed.
 
@@ -42,7 +41,7 @@ def calculate_difference(args: Tuple[int, np.ndarray, np.ndarray, float, float, 
     q_modified = q_original.copy()
     dq = q_original[index] * delta
     q_modified[index] += dq
-    
+
     max_time_steps, num_theta, num_r = shape
 
     # Simulate the temperature with the modified q
@@ -57,7 +56,7 @@ def calculate_difference(args: Tuple[int, np.ndarray, np.ndarray, float, float, 
     return derivative, index, T_q_delta
 
 def compute_differences(q: np.ndarray, T_real: np.ndarray, lambda_regul: float,
-                       executor: futures.Executor, delta: float, shape: tuple) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    executor: futures.Executor, delta: float, shape: tuple) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Computes the derivatives of the objective function with respect to q.
 
@@ -78,16 +77,13 @@ def compute_differences(q: np.ndarray, T_real: np.ndarray, lambda_regul: float,
 
     # Calculate the current objective function value with regularization
     E_q = minimize_equation(T_real, T_q) + (lambda_regul * tikhonov_regularization(q))
+    args = [(i, q, T_real, delta, E_q, lambda_regul, shape) for i in range(num_theta)]
 
-    # Prepare arguments for parallel computation
-    args = [(i, q, T_real, delta, E_q, lambda_regul, shape) for i in range(len(q))]
-
-    # Compute the derivatives in parallel
     results = list(executor.map(calculate_difference, args))
 
     # Initialize an array to store the derivatives
-    gradiente = np.zeros(len(q), dtype=np.float64)
-    perturbed_temps = np.zeros((len(q), len(T_q), len(T_q[0])), dtype=np.float64)
+    gradiente = np.zeros(num_theta, dtype=np.float64)
+    perturbed_temps = np.zeros((num_theta, len(T_q), len(T_q[0])), dtype=np.float64)
 
     # Populate the derivative array
     for diff, pos, temp in results:
@@ -97,8 +93,8 @@ def compute_differences(q: np.ndarray, T_real: np.ndarray, lambda_regul: float,
     return gradiente, T_q, perturbed_temps
 
 def optimize_parameters(T_real: np.ndarray, q_initial: np.ndarray, lambda_regul: float,
-                       executor: futures.Executor, deviation: float, experiment_time: int, step_size: float,
-                       shape: tuple, max_iterations: int) -> Tuple[np.ndarray, float, float, np.ndarray]:
+    executor: futures.Executor, deviation: float, experiment_time: int, step_size: float,
+    shape: tuple, max_iterations: int) -> Tuple[np.ndarray, float, float, np.ndarray]:
     """
     Optimizes the parameter vector q to minimize the objective function.
 
@@ -125,7 +121,7 @@ def optimize_parameters(T_real: np.ndarray, q_initial: np.ndarray, lambda_regul:
     start_time = time.time()
 
     # Morozov's discrepancy principle threshold
-    morozov = num_theta * experiment_time * (deviation ** 2) 
+    morozov = num_theta * experiment_time * (deviation ** 2)
 
     while iterations <= max_iterations and step_size >= 0: #and value_eq_min >= morozov
         # Compute derivatives and simulated temperatures
@@ -134,14 +130,13 @@ def optimize_parameters(T_real: np.ndarray, q_initial: np.ndarray, lambda_regul:
 
         J = calculate_jacobian(q, T_simulated, perturbed_temperatures, delta)
 
-        direcao_descida = - gradiente 
+        direcao_descida = - gradiente
 
         step_size = root_scalar(calculate_step, args=(J, direcao_descida, T_real, T_simulated, experiment_time, lambda_regul, q), method='newton', x0=step_size).root
-        
-        # Update the parameter vector
+
         q = q + (step_size * direcao_descida)
 
-        # Print progress at every iteration or if Morozov condition is met
+        # Print progress
         if iterations % 100 == 0:
             elapsed_time = time.time() - start_time
             print(f'Iteration {iterations}, Objective Function: {value_eq_min:.6f}, '
@@ -164,7 +159,7 @@ def optimize_parameters(T_real: np.ndarray, q_initial: np.ndarray, lambda_regul:
         })
 
         iterations += 1
-        
+
 
     # Final objective and regularization values
     final_minimize_value = minimize_equation(T_real, T_simulated)
@@ -175,8 +170,8 @@ def optimize_parameters(T_real: np.ndarray, q_initial: np.ndarray, lambda_regul:
 
     return q, final_minimize_value, final_tikhonov_value, T_simulated, df_results
 
-def run_optimization(T_real, random_values, max_iterations, lambda_regul: float, executor: futures.Executor,
-                     deviation: float = 0.1, shape = None, output_csv: str = "optimization_results_transient.csv") -> Tuple[np.ndarray, float, float]:
+def run_optimization(T_real, max_iterations, lambda_regul: float, executor: futures.Executor,
+                     deviation: float, shape: tuple) -> Tuple[np.ndarray, float, float]:
     """
     Runs the optimization process.
 
@@ -184,7 +179,6 @@ def run_optimization(T_real, random_values, max_iterations, lambda_regul: float,
     lambda_regul (float): Regularization parameter.
     executor (futures.Executor): Executor for parallel computation.
     deviation (float): Deviation for Morozov's discrepancy principle.
-    output_csv (str): Filename for saving optimization results.
 
     Returns:
     Tuple[np.ndarray, float, float]: Optimized q, minimized objective value, and Tikhonov value.
@@ -192,17 +186,11 @@ def run_optimization(T_real, random_values, max_iterations, lambda_regul: float,
 
     start_cpu_time = time.process_time()
 
-    experiment_time, Ntheta, _ = shape
-
-    # Add deviation to the real temperature data
-    T_real += (deviation * random_values)
-    T_real = T_real.to_numpy()
-
     # Initialize q with ones multiplied by 1000
-    q_initial = np.ones(Ntheta, dtype=np.float64) * 1000.0
+    q_initial = np.ones(shape[1], dtype=np.float64) * 1000.0
 
-    # Define step_size
-    step_size = 100
+    # Define step size
+    step_size = 1
 
     # Run the optimization
     args = optimize_parameters(
@@ -210,46 +198,14 @@ def run_optimization(T_real, random_values, max_iterations, lambda_regul: float,
         q_initial       = q_initial, 
         lambda_regul    = lambda_regul,
         executor        = executor,
-        deviation       = deviation, 
+        deviation       = deviation,
         experiment_time = experiment_time, 
         step_size       = step_size,
         shape           = shape, 
         max_iterations  = max_iterations
         )
     
-    optimized_q, minimized_value, tikhonov_val, temperature_simulated, optimization_results = args
-
-    # Save optimization history to CSV
-    optimization_results.to_csv(output_csv, index=False)
-
-    print("Optimization completed successfully.")
-    print(f"Optimized q: {optimized_q}")
-    print(f"Minimized Objective Function: {minimized_value}")
-    print(f"Tikhonov Regularization Value: {tikhonov_val}")
-    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-
     end_cpu_time = time.process_time()
     cpu_time_used = end_cpu_time - start_cpu_time
 
-    return optimized_q, minimized_value, tikhonov_val, temperature_simulated, optimization_results, cpu_time_used
-
-
-
-if __name__ == '__main__':
-    # Regularization parameter
-    lambda_reg = 1e-14
-
-    # Determine the number of available CPU cores
-    num_processes = mp.cpu_count()
-
-    # Create a process pool with the initializer
-    with futures.ProcessPoolExecutor(max_workers=num_processes, initializer=initializer) as executor:
-        # Run the optimization
-        optimized_q, minimized_value, tikhonov_val, temperature_simulated, optimization_results, cpu_time_used = run_optimization(lambda_reg, executor)
-
-    output_csv: str = "Transient File/optimization_results_permanent.csv"
-    optimization_results.to_csv(output_csv, index=False)
-    print("Final Results:")
-    print(f"Optimized q: {optimized_q}")
-    print(f"Minimized Objective Function: {minimized_value}")
-    print(f"Tikhonov Regularization Value: {tikhonov_val}")
+    return args, cpu_time_used

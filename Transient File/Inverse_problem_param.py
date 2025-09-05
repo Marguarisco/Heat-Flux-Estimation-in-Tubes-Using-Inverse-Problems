@@ -178,7 +178,8 @@ def optimize_parameters(T_real: np.ndarray, parameters: np.ndarray, lambda_regul
     return parameters, final_minimize_value, final_tikhonov_value, T_simulated, df_results
 
 def run_optimization(T_real, random_values, max_iterations, lambda_regul: float, executor: futures.Executor,
-                     deviation: float = 0.1, shape = None, output_csv: str = "optimization_results_transient.csv") -> Tuple[np.ndarray, float, float]:
+                     deviation: float = 0.1, shape = None, 
+                     output_csv: str = "optimization_results_transient.csv") -> Tuple[np.ndarray, float, float]:
     """
     Runs the optimization process.
 
@@ -203,7 +204,7 @@ def run_optimization(T_real, random_values, max_iterations, lambda_regul: float,
     parameters = np.ones(17, dtype=np.float64) * 1000.0 
 
     # Define step_size
-    step_size = 100
+    step_size = 1
 
     # Run the optimization
     args = optimize_parameters(
