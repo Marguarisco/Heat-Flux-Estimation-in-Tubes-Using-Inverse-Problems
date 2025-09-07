@@ -74,14 +74,14 @@ def initializer():
     q_dummy = np.ones(20, dtype=np.float64) * 100.0
     ADIMethod(q_dummy)
 
-def run_experiment(filename, radial_size, angular_size, max_time_steps):
+def run_experiment(filename, radial_size, angular_size, max_time_steps, dt):
     theta = np.linspace(-np.pi, np.pi, angular_size, endpoint=False) 
 
     # Define the heat source as a quadratic function of Theta
     heat_flux = ((-2000.0) * (theta / np.pi) ** 2) + 2000.0
 
     # Execute the ADI method
-    estimated_temperature = ADIMethod(heat_flux, radial_size, angular_size, max_time_steps)
+    estimated_temperature = ADIMethod(heat_flux, radial_size, angular_size, max_time_steps, dt)
 
     np.savez_compressed(
         filename,

@@ -113,7 +113,7 @@ def optimize_parameters(T_measured: np.ndarray, heat_flux: np.ndarray, lambda_re
     iterations = 0
     delta = 1e-8
     objective_function = 1e5
-    filename = path + f"data_{lambda_regul}_{deviation}_{max_iterations:.0e}"
+    filename = path + f"data_{lambda_regul:.0e}_{deviation}_{max_iterations:.0e}"
 
     if os.path.exists(filename):
         hf = h5py.File(filename, 'w')
@@ -123,6 +123,7 @@ def optimize_parameters(T_measured: np.ndarray, heat_flux: np.ndarray, lambda_re
     angular_size = shape[0]
 
     start_time = time.time()
+    start_cpu_time = time.process_time()
 
     # Morozov's discrepancy principle threshold
     morozov = angular_size * (deviation ** 2)
@@ -169,6 +170,9 @@ def optimize_parameters(T_measured: np.ndarray, heat_flux: np.ndarray, lambda_re
 
             iterations += 1
 
+        end_cpu_time = time.process_time()
+        cpu_time_used = end_cpu_time - start_cpu_time
+        hf.attrs['CPU_time'] = cpu_time_used
 
     return heat_flux, T_estimated
 

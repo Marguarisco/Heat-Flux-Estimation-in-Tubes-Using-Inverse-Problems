@@ -11,14 +11,15 @@ path = 'permanent_folder/data/'
 
 
 deviations = [0.1, 0.5]
-lambda_list = np.logspace(-10, -4, num=10)
+lambda_list = np.logspace(-10, -5, num=10)
+#lambda_list = lambda_list[7:]
 
 radial_size = 9
 angular_size = 80
 
 num_sensors = 20
 time_step_quantity = 1e10
-max_iterations = 1000
+max_iterations = 1500
 
 
 if __name__ == '__main__':
@@ -31,7 +32,7 @@ if __name__ == '__main__':
 
     else:
         # If the file does not exist, generate a new array and save it
-        run_experiment(filename, radial_size, angular_size, time_step_quantity)
+        run_experiment(filename, radial_size, angular_size, time_step_quantity, dt = 0.01)
         values = np.load(filename)['estimated_temperature']
         print(f"Made a new simulation and saved to {filename} with shape {values.shape}")
 
@@ -55,7 +56,7 @@ if __name__ == '__main__':
             # Iterate over each lambda value
             for lambda_regul in lambda_list:
                 # Print the current lambda and deviation being executed
-                print(f"Executing for Lambda: {lambda_regul}, Deviation: {deviation}")
+                print(f"Executing for Lambda: {lambda_regul:.0e}, Deviation: {deviation}")
 
                 # Run the optimization process
                 args = run_optimization(
@@ -67,4 +68,5 @@ if __name__ == '__main__':
                     shape = shape)
                 
                 parameters, T_estimated = args
-
+                
+                print("Simulation Finished. Saving data.")

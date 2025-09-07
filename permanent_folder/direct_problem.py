@@ -196,7 +196,8 @@ def ADIMethod(
     heat_flux: np.ndarray,
     radial_size: int = 9, 
     angular_size: int = 20, 
-    max_time_steps: int = 1e10
+    max_time_steps: int = 1e10,
+    dt = 0.1
 ) -> np.ndarray:
     """
     Executes the Alternating Direction Implicit (ADI) method to solve the diffusion equation.
@@ -222,7 +223,6 @@ def ADIMethod(
     # SPACING
     dr = (r_outer - r_inner) / (radial_size - 1)  # Radial step size
     dtheta = 2 * np.pi / angular_size  # Angular step size (radians)
-    dt = 0.1
     dt_all = 1
 
     # MESH GRID
