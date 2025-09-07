@@ -1,14 +1,11 @@
 from inverse_problem import run_optimization
-import matplotlib.pyplot as plt
 import numpy as np
 from concurrent import futures
-import pandas as pd
 import multiprocessing as mp
 import os
 from utils import run_experiment, load_or_generate_random_values
 
 path = 'permanent_folder/data/'
-
 
 deviations = [0.1, 0.5]
 lambda_list = np.logspace(-10, -5, num=10)
@@ -18,12 +15,12 @@ radial_size = 9
 angular_size = 80
 
 num_sensors = 20
-time_step_quantity = 1e10
+max_simulation_time = 1e10
 max_iterations = 1500
 
 
 if __name__ == '__main__':
-    filename = path + f"direct_problem_{radial_size}_{angular_size}_{time_step_quantity:.0e}.npz"
+    filename = path + f"direct_problem_{radial_size}_{angular_size}_{max_simulation_time:.0e}.npz"
 
     if os.path.exists(filename):
         # If the file exists, load the saved array
@@ -32,7 +29,7 @@ if __name__ == '__main__':
 
     else:
         # If the file does not exist, generate a new array and save it
-        run_experiment(filename, radial_size, angular_size, time_step_quantity, dt = 0.01)
+        run_experiment(filename, radial_size, angular_size, max_simulation_time, dt = 0.01)
         values = np.load(filename)['estimated_temperature']
         print(f"Made a new simulation and saved to {filename} with shape {values.shape}")
 

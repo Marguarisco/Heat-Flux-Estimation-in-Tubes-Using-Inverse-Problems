@@ -1,6 +1,5 @@
 from direct_problem import ADIMethod
 import numpy as np
-import pandas as pd
 import time
 from concurrent import futures
 from typing import Tuple
@@ -68,6 +67,7 @@ def compute_differences(heat_flux: np.ndarray, T_measured: np.ndarray, lambda_re
     """
     # Simulate the current temperature with the current q
     angular_size, radial_size = shape
+
     T_estimated = ADIMethod(heat_flux, radial_size, angular_size)[:, -1]  # Simulated temperature
 
     # Calculate the current objective function value with regularization
@@ -92,7 +92,7 @@ def compute_differences(heat_flux: np.ndarray, T_measured: np.ndarray, lambda_re
 
 def optimize_parameters(T_measured: np.ndarray, heat_flux: np.ndarray, lambda_regul: float,
     executor: futures.Executor, deviation: float, step_size: float,
-    shape: tuple, max_iterations: int) -> Tuple[np.ndarray, float, float, np.ndarray, pd.DataFrame]:
+    shape: tuple, max_iterations: int) -> Tuple[np.ndarray, np.ndarray]:
     """
     Optimizes the parameter vector q to minimize the objective function.
 
@@ -106,7 +106,7 @@ def optimize_parameters(T_measured: np.ndarray, heat_flux: np.ndarray, lambda_re
     max_iterations (int): Maximum number of iterations.
 
     Returns:
-    Tuple[np.ndarray, float, float, np.ndarray, pd.DataFrame]: Optimized q, minimized objective value, Tikhonov value, Temperature simulated, and optimization results.
+    Tuple[np.ndarray, np.ndarray]: Optimized q, minimized objective value, Tikhonov value, Temperature simulated, and optimization results.
     """
     path = "C:/Users/marce/Desktop/TCC/results/"
 
@@ -147,7 +147,7 @@ def optimize_parameters(T_measured: np.ndarray, heat_flux: np.ndarray, lambda_re
                 start_time = time.time()
 
             iter_group = hf.create_group(f'iteration_{iterations}')
-            
+
             # Salve o array heat_flux como um dataset dentro do grupo
             iter_group.create_dataset('heat_flux', data=heat_flux)
             iter_group.create_dataset('T_estimated', data=T_estimated)
@@ -187,14 +187,14 @@ def run_optimization(T_measured, max_iterations, lambda_regul: float, executor: 
     deviation (float): Deviation for Morozov's discrepancy principle.
 
     Returns:
-    Tuple[np.ndarray, float, float, np.ndarray, pd.DataFrame]: Optimized q, minimized objective value, Tikhonov value, Temperature simulated, and optimization results.
+    
     """
     # Initialize q with ones multiplied by 1000
     heat_flux_initial = np.ones(shape[0], dtype=np.float64) * 1000.0
 
     # Define step size
     step_size = 500
-    
+
     args = optimize_parameters(
         T_measured          = T_measured, 
         heat_flux       = heat_flux_initial, 

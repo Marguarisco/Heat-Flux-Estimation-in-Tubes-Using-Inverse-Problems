@@ -194,9 +194,9 @@ def solve_implicit_theta(
 @numba.jit(nopython=True, fastmath=True)
 def ADIMethod(
     heat_flux: np.ndarray,
-    radial_size: int = 9, 
-    angular_size: int = 20, 
-    max_time_steps: int = 1e10,
+    radial_size: int, 
+    angular_size: int, 
+    max_simulation_time: int = 1e10,
     dt = 0.1
 ) -> np.ndarray:
     """
@@ -262,11 +262,11 @@ def ADIMethod(
     main_diag_theta = np.ones(angular_size)
     aux_diag_theta = np.zeros(angular_size - 1)
 
-    time_step = 1
+    simulation_time = 1
     tol_steady_state = 1e-4
     diff = 1.0
 
-    while time_step < max_time_steps and diff > tol_steady_state:
+    while simulation_time < max_simulation_time and diff > tol_steady_state:
 
         for _ in range(dt_all/dt):
 
@@ -288,6 +288,6 @@ def ADIMethod(
         diff = np.max(np.abs(current_temp - previous_temp))
         copy_arrays(previous_temp, current_temp)
 
-        time_step += 1
+        simulation_time += 1
 
     return current_temp

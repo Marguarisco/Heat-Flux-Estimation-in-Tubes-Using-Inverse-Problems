@@ -9,7 +9,7 @@ def tikhonov_regularization(heat_flux: np.ndarray, use_differences: bool = True)
     Calculates the Tikhonov regularization term.
 
     Parameters:
-    q (np.ndarray): Parameter vector.
+    heat_flux (np.ndarray): Parameter vector.
     use_differences (bool): Whether to use differences of q for regularization.
 
     Returns:
@@ -20,7 +20,7 @@ def tikhonov_regularization(heat_flux: np.ndarray, use_differences: bool = True)
     else:
         diffs = np.diff(heat_flux)
         return np.sum(diffs ** 2)
-@njit    
+@njit
 def calculate_jacobian(heat_flux: np.ndarray, T_estimated: np.ndarray, historical_temperatures: np.ndarray, delta: float) -> np.ndarray:
     """
     Calculates the Jacobian J = dT/dq using finite differences.
@@ -60,10 +60,12 @@ def load_or_generate_random_values(mesh_size: int, filename: str = None) -> np.n
     if os.path.exists(filename):
         # If the file exists, load the saved array
         values = np.load(filename)
+        print(f"Loaded array from {filename} with shape {values.shape}")
     else:
         # If the file does not exist, generate a new array and save it
         values = np.random.normal(0, 1, mesh_size)
         np.save(filename, values)
+        print(f"Generated and saved new array to {filename} with shape {values.shape}")
     return values
 
 def initializer():
@@ -74,14 +76,14 @@ def initializer():
     q_dummy = np.ones(20, dtype=np.float64) * 100.0
     ADIMethod(q_dummy)
 
-def run_experiment(filename, radial_size, angular_size, max_time_steps, dt):
+def run_experiment(filename, radial_size, angular_size, max_simulation_time, dt):
     theta = np.linspace(-np.pi, np.pi, angular_size, endpoint=False) 
 
     # Define the heat source as a quadratic function of Theta
     heat_flux = ((-2000.0) * (theta / np.pi) ** 2) + 2000.0
 
     # Execute the ADI method
-    estimated_temperature = ADIMethod(heat_flux, radial_size, angular_size, max_time_steps, dt)
+    estimated_temperature = ADIMethod(heat_flux, radial_size, angular_size, max_simulation_time, dt)
 
     np.savez_compressed(
         filename,
