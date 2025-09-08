@@ -1,4 +1,7 @@
 direct_problem_folder/Results
 permanent_folder/data
 permanent_folder/teste.py
+
+permanent_transient_folder/output
+
 results

@@ -13,7 +13,6 @@ lambda_list = np.logspace(-10, -5, num=1)
 radial_size = 9
 angular_size = 80
 
-
 num_sensors = 20
 total_simulation_time = 19000
 max_iterations = 1500

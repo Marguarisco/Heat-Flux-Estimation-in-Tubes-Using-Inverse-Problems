@@ -284,9 +284,9 @@ def ADIMethod(
                 main_diag_theta, aux_diag_theta
             )
             copy_arrays(current_temp, new_temp)
-            
+
         # Record the external temperature at the boundary
         historical_temperature_list[simulation_time, :] = current_temp[:, -1]
         simulation_time += 1
-        
+
     return historical_temperature_list[:simulation_time, :]

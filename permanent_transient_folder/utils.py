@@ -125,7 +125,7 @@ def run_experiment(filename, radial_size, angular_size, total_simulation_time, d
 
     # Define the heat source as a quadratic function of Theta
     heat_flux = ((-2000.0) * (theta / np.pi) ** 2) + 2000.0
-    
+
     # Execute the ADI method
     estimated_temperature = ADIMethod(heat_flux, radial_size, angular_size, total_simulation_time, dt)
 

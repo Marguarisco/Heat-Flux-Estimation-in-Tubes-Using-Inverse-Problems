@@ -14,8 +14,8 @@ def minimize_equation(T_measured: np.ndarray, T_estimated: np.ndarray) -> float:
     Calculates the difference between the real temperature and simulated temperature.
 
     Parameters:
-    T_real (np.ndarray): Real temperature data.
-    T_simulated (np.ndarray): Simulated temperature data.
+    T_measured (np.ndarray): Real temperature data.
+    T_estimated (np.ndarray): Simulated temperature data.
 
     Returns:
     float: Sum of integrated squared differences.
@@ -23,7 +23,7 @@ def minimize_equation(T_measured: np.ndarray, T_estimated: np.ndarray) -> float:
 
     diff = (T_estimated - T_measured) ** 2
 
-    return np.sum(simps(diff, x=np.arange(T_measured.shape[0]), axis=0))
+    return (1/2) * np.sum(simps(diff, x=np.arange(T_measured.shape[0]), axis=0))
 
 def calculate_difference(args: Tuple[int, np.ndarray, np.ndarray, float, float, float, tuple]) -> Tuple[float, int, np.ndarray]:
     """
@@ -37,12 +37,12 @@ def calculate_difference(args: Tuple[int, np.ndarray, np.ndarray, float, float, 
     """
     angular_position, heat_flux_original, T_measured, delta, error, lambda_regul, shape = args
 
-    # Perturb the q parameter at the given index
     heat_flux_modified = heat_flux_original.copy()
     dheat_flux = heat_flux_original[angular_position] * delta
     heat_flux_modified[angular_position] += dheat_flux
 
     total_simulation_time, angular_size, radial_size = shape
+
 
     # Simulate the temperature with the modified q
     T_estimated_pertubed = ADIMethod(heat_flux_modified, radial_size, angular_size, total_simulation_time)
@@ -58,11 +58,11 @@ def calculate_difference(args: Tuple[int, np.ndarray, np.ndarray, float, float, 
 def compute_differences(heat_flux: np.ndarray, T_measured: np.ndarray, lambda_regul: float,
     executor: futures.Executor, delta: float, shape: tuple) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Computes the derivatives of the objective function with respect to q.
+    Computes the derivatives of the objective function.
 
     Parameters:
     q (np.ndarray): Current parameter vector.
-    T_real (np.ndarray): Real temperature data.
+    T_measured (np.ndarray): Real temperature data.
     lambda_regul (float): Regularization parameter.
     executor (futures.Executor): Executor for parallel computation.
     delta (float): Perturbation size.
@@ -78,7 +78,7 @@ def compute_differences(heat_flux: np.ndarray, T_measured: np.ndarray, lambda_re
     # Calculate the current objective function value with regularization
     objective_function = minimize_equation(T_measured, T_estimated)
     tikhonov = tikhonov_regularization(heat_flux)
-    error =  objective_function + (lambda_regul * tikhonov)
+    error = objective_function + (lambda_regul * tikhonov)
 
     args = [(angular_position, heat_flux, T_measured, delta, error, lambda_regul, shape) for angular_position in range(angular_size)]
 
@@ -102,7 +102,7 @@ def optimize_parameters(T_measured: np.ndarray, heat_flux: np.ndarray, lambda_re
     Optimizes the parameter vector q to minimize the objective function.
 
     Parameters:
-    T_real (np.ndarray): Real temperature data.
+    T_measured (np.ndarray): Real temperature data.
     q_initial (np.ndarray): Initial parameter vector.
     lambda_regul (float): Regularization parameter.
     executor (futures.Executor): Executor for parallel computation.
@@ -132,7 +132,7 @@ def optimize_parameters(T_measured: np.ndarray, heat_flux: np.ndarray, lambda_re
     start_cpu_time = time.process_time()
 
     # Morozov's discrepancy principle threshold
-    morozov = angular_size * total_simulation_time * (deviation ** 2)
+    morozov = (1/2) * angular_size * total_simulation_time * (deviation ** 2)
     with hf:
 
         hf.create_dataset('T_measured', data=T_measured)
@@ -141,7 +141,7 @@ def optimize_parameters(T_measured: np.ndarray, heat_flux: np.ndarray, lambda_re
         hf.attrs['Deviation'] = deviation
         hf.attrs['Morozov'] = morozov
 
-        while iterations <= max_iterations and step_size >= 0: #and value_eq_min >= morozov
+        while iterations <= max_iterations and step_size > 0: #and value_eq_min >= morozov
             # Compute derivatives and simulated temperatures
             gradient, T_estimated, objective_function, tikhonov, pertubed_temperatures_list = compute_differences(heat_flux, T_measured, lambda_regul, executor, delta, shape)
 
@@ -191,13 +191,12 @@ def run_optimization(T_measured, max_iterations, lambda_regul: float, executor: 
     deviation (float): Deviation for Morozov's discrepancy principle.
 
     Returns:
-    
     """
-    # Initialize q with ones multiplied by 1000
+    # Initialize q
     heat_flux_initial = np.ones(shape[1], dtype=np.float64) * 1000.0
 
     # Define step size
-    step_size = 500
+    step_size = 1
 
     args = optimize_parameters(
         T_measured          = T_measured, 
