@@ -148,7 +148,7 @@ def optimize_parameters(T_measured: np.ndarray, parameters: np.ndarray, lambda_r
             gradient, T_estimated, objective_function, tikhonov, pertubed_temperatures_list = compute_differences(parameters, T_measured, lambda_regul, executor, delta, shape)
 
             # Print progress
-            if iterations % 1 == 0:
+            if iterations % 100 == 0:
                 elapsed_time = time.time() - start_time
                 print(f'Iteration {iterations}, Objective Function: {objective_function:,.6f}, '
                     f'Time: {elapsed_time:.2f}s, step_size: {step_size}, Morozov: {morozov}')

@@ -1,18 +1,7 @@
 import numpy as np
 import numba
 
-@numba.jit(nopython=True, fastmath=True, cache=True)
-def copy_arrays(destination: np.ndarray, source: np.ndarray) -> None:
-    """
-    Copies the values from the source array to the destination array.
-
-    Parameters:
-    destination (np.ndarray): The array where values will be copied to.
-    source (np.ndarray): The array from which values will be copied.
-    """
-    destination[:] = source[:]
-
-@numba.jit(nopython=True, fastmath=True, cache=True)
+@numba.jit(nopython=True, fastmath=True, cache=True, parallel=False)
 def solve_tridiagonal_system(
     lower_diagonal: np.ndarray, 
     main_diagonal: np.ndarray, 
@@ -191,7 +180,7 @@ def solve_implicit_theta(
 
     return new_temp
 
-@numba.jit(nopython=True, fastmath=True)
+@numba.jit(nopython=True, fastmath=True, cache=True)
 def ADIMethod(
     heat_flux: np.ndarray,
     radial_size: int, 
@@ -274,7 +263,7 @@ def ADIMethod(
                 current_temp, gamma_tt, main_diag_r, upper_diag_r, lower_diag_r, 
                 gamma_0, gamma_j, T_outer, angular_size, radial_size, new_temp, rhs_r
             )
-            copy_arrays(current_temp, new_temp)
+            current_temp[:] = new_temp
 
             # Solve the implicit theta step
             new_temp = solve_implicit_theta(
@@ -282,7 +271,7 @@ def ADIMethod(
                 T_outer, angular_size, radial_size, new_temp, rhs_theta, 
                 main_diag_theta, aux_diag_theta
             )
-            copy_arrays(current_temp, new_temp)
+            current_temp[:] = new_temp
 
         # Record the external temperature at the boundary
         historical_temperature_list[simulation_time, :] = current_temp[:, -1]

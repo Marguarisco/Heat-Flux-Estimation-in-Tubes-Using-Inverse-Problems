@@ -15,9 +15,9 @@ angular_size = 80
 
 num_sensors = 20
 total_simulation_time = 19000
-max_iterations = 15000
+max_iterations = 1000
 
-N_list = [6, 8, 10]
+N_list = [2, 4, 6, 8, 10]
 
 if __name__ == '__main__':
     filename = path + f"direct_problem_{radial_size}_{angular_size}_{total_simulation_time}.npz"

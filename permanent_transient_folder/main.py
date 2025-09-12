@@ -1,4 +1,4 @@
-from permanent_transient_folder.inverse_problem import run_optimization
+from inverse_problem import run_optimization
 import numpy as np
 from concurrent import futures
 import multiprocessing as mp
@@ -8,14 +8,15 @@ from utils import run_experiment, load_or_generate_random_values
 path = 'permanent_transient_folder/data/'
 
 deviations = [0.1, 0.5]
-lambda_list = np.logspace(-10, -5, num=1)
+lambda_list = np.logspace(-10, -5, num=10)
+lambda_list = lambda_list[1:]
 
 radial_size = 9
 angular_size = 80
 
 num_sensors = 20
 total_simulation_time = 19000
-max_iterations = 1500
+max_iterations = 1000
 
 
 if __name__ == '__main__':

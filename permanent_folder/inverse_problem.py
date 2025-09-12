@@ -113,7 +113,7 @@ def optimize_parameters(T_measured: np.ndarray, heat_flux: np.ndarray, lambda_re
     iterations = 0
     delta = 1e-8
     objective_function = 1e5
-    filename = path + f"data_{lambda_regul:.0e}_{deviation}_{max_iterations:.0e}"
+    filename = path + f"data_{lambda_regul:.2e}_{deviation}_{max_iterations:.2e}"
 
     if os.path.exists(filename):
         hf = h5py.File(filename, 'w')

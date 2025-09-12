@@ -7,9 +7,9 @@ from utils import run_experiment, load_or_generate_random_values
 
 path = 'permanent_folder/data/'
 
-deviations = [0.1, 0.5]
-lambda_list = np.logspace(-10, -5, num=10)
-#lambda_list = lambda_list[7:]
+deviations = [0.5]
+lambda_list = np.logspace(-14, -10, num=5)
+lambda_list = lambda_list[:-1]
 
 radial_size = 9
 angular_size = 80
