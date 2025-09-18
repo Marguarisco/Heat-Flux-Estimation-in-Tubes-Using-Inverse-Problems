@@ -7,17 +7,17 @@ from utils import run_experiment, load_or_generate_random_values
 
 path = 'transient_folder/data/'
 
-deviations = [0.1, 0.5]
-lambda_regul = 0
+deviations = [0.5]
+alpha_regul = 0
 
 radial_size = 9
 angular_size = 80
 
 num_sensors = 20
-total_simulation_time = 19000
-max_iterations = 1000
+total_simulation_time = 10800
+max_iterations = 10000
 
-N_list = [2, 4, 6, 8, 10]
+N_list = [1, 3, 5]
 
 if __name__ == '__main__':
     filename = path + f"direct_problem_{radial_size}_{angular_size}_{total_simulation_time}.npz"
@@ -52,16 +52,16 @@ if __name__ == '__main__':
         for deviation in deviations:
             T_measured += (deviation * random_values)
 
-            # Iterate over each lambda value
+            # Iterate over each alpha value
             for N in N_list:
-                # Print the current lambda and deviation being executed
-                print(f"Executing for Lambda: {lambda_regul:.0e}, Deviation: {deviation}, N: {N}")
+                # Print the current alpha and deviation being executed
+                print(f"Executing for alpha: {alpha_regul:.0e}, Deviation: {deviation}, N: {N}")
 
                 # Run the optimization process
                 args = run_optimization(
                     T_measured = T_measured,
                     max_iterations = max_iterations,
-                    lambda_regul = lambda_regul,
+                    alpha_regul = alpha_regul,
                     executor = executor, 
                     deviation = deviation,
                     shape = shape,

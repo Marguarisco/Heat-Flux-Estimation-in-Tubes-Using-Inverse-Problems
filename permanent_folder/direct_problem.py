@@ -196,7 +196,7 @@ def ADIMethod(
     heat_flux: np.ndarray,
     radial_size: int, 
     angular_size: int, 
-    max_simulation_time: int = 1e10,
+    max_simulation_time: int = 20000,
     dt = 0.1
 ) -> np.ndarray:
     """

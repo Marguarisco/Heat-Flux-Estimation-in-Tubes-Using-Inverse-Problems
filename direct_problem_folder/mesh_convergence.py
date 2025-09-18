@@ -6,7 +6,7 @@ def dif_malhas(T_antes, T_novo):
     Ntheta_novo, Nr_novo = T_novo.shape # Dimensões da lista de temperaturas depois
 
     print(Nr_antes, Ntheta_antes)
-    print(Nr_novo,Ntheta_novo)
+    print(Nr_novo, Ntheta_novo)
     
     T_novo_interpol = np.zeros_like(T_antes)
     

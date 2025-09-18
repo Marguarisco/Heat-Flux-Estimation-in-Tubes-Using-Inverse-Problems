@@ -52,7 +52,7 @@ def calculate_jacobian(parameters: np.ndarray, T_estimated: np.ndarray, historic
     
     return J
 
-def calculate_step(step: int, J: np.ndarray, direcao_descida: np.ndarray, T_measured: np.ndarray, T_estimated: np.ndarray, experiment_time: int, lambda_regul: int, parameters: np.ndarray) -> float:
+def calculate_step(step: int, J: np.ndarray, direcao_descida: np.ndarray, T_measured: np.ndarray, T_estimated: np.ndarray, experiment_time: int, alpha_regul: int, parameters: np.ndarray) -> float:
     """
     Calculates the step size for optimization.
 
@@ -63,7 +63,7 @@ def calculate_step(step: int, J: np.ndarray, direcao_descida: np.ndarray, T_meas
     T_real (np.ndarray): Real temperature data. shape: (Nt, 20)
     T_simulated (np.ndarray): Simulated temperature data. shape: (Nt, 20)
     Nt (int): Number of time steps. 
-    lambda_regul (float): Regularization parameter.
+    alpha_regul (float): Regularization parameter.
     parameters (np.ndarray): Parameter vector.
 
     Returns:
@@ -82,7 +82,7 @@ def calculate_step(step: int, J: np.ndarray, direcao_descida: np.ndarray, T_meas
     diff_p = np.diff(parameters) # shape: (19,)
     diff_d = np.diff(direcao_descida, axis=0) # shape: (19,)
 
-    regularization_term = experiment_time * lambda_regul * np.sum((diff_p + (step * diff_d)) * diff_d) # shape: scalar
+    regularization_term = experiment_time * alpha_regul * np.sum((diff_p + (step * diff_d)) * diff_d) # shape: scalar
 
     return integral_result + regularization_term
 

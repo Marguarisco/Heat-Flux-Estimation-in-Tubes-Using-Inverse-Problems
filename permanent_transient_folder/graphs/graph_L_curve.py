@@ -100,7 +100,8 @@ for deviation, group_df in grouped_by_deviation:
     plt.xlabel("Residual norm || Ax - b ||", fontsize=12)
     plt.ylabel("Solution norm ||x||", fontsize=12)
     plt.title(f"L-Curve - Deviation = {deviation}", fontsize=14)
-
+    plt.yscale('log')
+    plt.xscale('log')
 
     plt.grid(True, which="both", linestyle=':')
     plt.show()

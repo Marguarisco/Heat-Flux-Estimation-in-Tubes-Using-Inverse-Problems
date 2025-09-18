@@ -35,7 +35,7 @@ def calculate_difference(args: Tuple[int, np.ndarray, np.ndarray, float, float, 
     Returns:
     Tuple[float, int, np.ndarray]: The derivative estimate, the index and the perturbed temperature.
     """
-    angular_position, parameters, T_measured, delta, error, lambda_regul, shape = args
+    angular_position, parameters, T_measured, delta, error, alpha_regul, shape = args
 
     parameters_modified = parameters.copy()
     dp = parameters[angular_position] * delta
@@ -49,14 +49,14 @@ def calculate_difference(args: Tuple[int, np.ndarray, np.ndarray, float, float, 
     T_estimated_pertubed = ADIMethod(heat_flux_modified, radial_size, angular_size, total_simulation_time)
 
     # Calculate the new objective function value with regularization
-    error_pertubed = minimize_equation(T_measured, T_estimated_pertubed) + (lambda_regul * tikhonov_regularization(parameters_modified))
+    error_pertubed = minimize_equation(T_measured, T_estimated_pertubed) + (alpha_regul * tikhonov_regularization(parameters_modified))
 
     # Estimate the derivative using finite differences
     derivative = (error_pertubed - error) / dp
 
     return derivative, angular_position, T_estimated_pertubed
 
-def compute_differences(parameters: np.ndarray, T_measured: np.ndarray, lambda_regul: float,
+def compute_differences(parameters: np.ndarray, T_measured: np.ndarray, alpha_regul: float,
     executor: futures.Executor, delta: float, shape: tuple) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Computes the derivatives of the objective function.
@@ -64,7 +64,7 @@ def compute_differences(parameters: np.ndarray, T_measured: np.ndarray, lambda_r
     Parameters:
     parameters (np.ndarray): Current parameter vector.
     T_measured (np.ndarray): Real temperature data.
-    lambda_regul (float): Regularization parameter.
+    alpha_regul (float): Regularization parameter.
     executor (futures.Executor): Executor for parallel computation.
     delta (float): Perturbation size.
 
@@ -81,9 +81,9 @@ def compute_differences(parameters: np.ndarray, T_measured: np.ndarray, lambda_r
     # Calculate the current objective function value with regularization
     objective_function = minimize_equation(T_measured, T_estimated)
     tikhonov = tikhonov_regularization(parameters)
-    error = objective_function + (lambda_regul * tikhonov)
+    error = objective_function + (alpha_regul * tikhonov)
 
-    args = [(angular_position, parameters, T_measured, delta, error, lambda_regul, shape) for angular_position in range(len(parameters))]
+    args = [(angular_position, parameters, T_measured, delta, error, alpha_regul, shape) for angular_position in range(len(parameters))]
 
     results = list(executor.map(calculate_difference, args))
 
@@ -98,7 +98,7 @@ def compute_differences(parameters: np.ndarray, T_measured: np.ndarray, lambda_r
 
     return gradient, T_estimated, objective_function, tikhonov, pertubed_temperatures_list
 
-def optimize_parameters(T_measured: np.ndarray, parameters: np.ndarray, lambda_regul: float,
+def optimize_parameters(T_measured: np.ndarray, parameters: np.ndarray, alpha_regul: float,
     executor: futures.Executor, deviation: float, step_size: float,
     shape: tuple, max_iterations: int) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -107,7 +107,7 @@ def optimize_parameters(T_measured: np.ndarray, parameters: np.ndarray, lambda_r
     Parameters:
     T_measured (np.ndarray): Real temperature data.
     parameters (np.ndarray): Initial parameter vector.
-    lambda_regul (float): Regularization parameter.
+    alpha_regul (float): Regularization parameter.
     executor (futures.Executor): Executor for parallel computation.
     deviation (float): Deviation for Morozov's discrepancy principle.
     step_size (float): Step size for optimization.
@@ -116,17 +116,54 @@ def optimize_parameters(T_measured: np.ndarray, parameters: np.ndarray, lambda_r
     Returns:
     Tuple[np.ndarray, np.ndarray]: Optimized q, minimized objective value, Tikhonov value, Temperature simulated, and optimization results.
     """
-    path = "transient_folder/output/"
 
-    iterations = 0
+    path = "transient_folder/output/"
+    if not os.path.exists(path):
+        os.makedirs(path)
+
     delta = 1e-8
-    objective_function = 1e5
-    filename = path + f"data_{lambda_regul:.0e}_{deviation}_{max_iterations:.0e}_{int((len(parameters) - 1) / 4)}"
+    N = int((len(parameters) - 1) / 4)
+    filename = path + f"data_{deviation}_{max_iterations:.1e}_{N}"
 
     if os.path.exists(filename):
-        hf = h5py.File(filename, 'w')
+        print(f"Arquivo '{filename}' encontrado. Tentando resumir a otimização.")
+        with h5py.File(filename, 'a') as hf: # Abre em modo de leitura para verificar
+            iter_keys = [k for k in hf.keys() if k.startswith('iteration_')]
+            if iter_keys:
+                iter_nums = sorted([int(k.split('_')[-1]) for k in iter_keys])
+
+                if len(iter_nums) >= 2:
+                        # Se houver 2 ou mais iterações, escolhe a penúltima por segurança.
+                        resume_iter_num = iter_nums[-2]
+                        print(f"Múltiplas iterações encontradas. Resumindo da penúltima ({resume_iter_num}) por segurança.")
+                else:
+                    # Se houver apenas uma, não há outra escolha a não ser usá-la.
+                    resume_iter_num = iter_nums[0]
+                    print(f"Apenas uma iteração ({resume_iter_num}) encontrada. Resumindo a partir dela.")
+                for num in iter_nums:
+                    if num > resume_iter_num:
+                        print(f"Removendo grupo de iteração incompleto/posterior: iteration_{num}")
+                        del hf[f'iteration_{num}']
+
+                print(f"Carregando estado da iteração {resume_iter_num}. A otimização continuará a partir da {resume_iter_num + 1}.")
+                
+                last_group = hf[f'iteration_{resume_iter_num}']
+                # Carrega o estado da última iteração
+                parameters = last_group['parameters'][:]
+                objective_function = last_group.attrs['Objective_Function']
+                step_size = last_group.attrs['step_size']
+                iterations = resume_iter_num + 1
+                if max_iterations <= resume_iter_num:
+                    max_iterations = resume_iter_num + 10000
+            else:
+                # O arquivo existe, mas está vazio ou corrompido. Melhor começar de novo.
+                print("Arquivo existe, mas não contém dados de iteração. Um novo arquivo será criado.")
+                iterations = 0
+                objective_function = 1e15
     else:
-        hf = h5py.File(filename, 'x')
+        print(f"Arquivo '{filename}' não encontrado. Iniciando nova otimização.")
+        iterations = 0
+        objective_function = 1e15
 
     angular_size = shape[1]
     total_simulation_time = shape[0]
@@ -136,47 +173,55 @@ def optimize_parameters(T_measured: np.ndarray, parameters: np.ndarray, lambda_r
 
     # Morozov's discrepancy principle threshold
     morozov = (1/2) * len(parameters) * total_simulation_time * (deviation ** 2)
-    with hf:
 
-        hf.create_dataset('T_measured', data=T_measured)
+    with h5py.File(filename, 'a') as hf:
+        # Se for uma nova execução (iteration == 0), salva os metadados iniciais.
+        if iterations == 0:
+            if 'T_measured' in hf: del hf['T_measured'] # Remove se existir para evitar erro
+            hf.create_dataset('T_measured', data=T_measured)
+            hf.attrs['Lambda'] = alpha_regul
+            hf.attrs['Deviation'] = deviation
+            hf.attrs['Morozov'] = morozov
+            hf.attrs['N'] = N
 
-        hf.attrs['Lambda'] = lambda_regul
-        hf.attrs['Deviation'] = deviation
-        hf.attrs['Morozov'] = morozov
-        while iterations <= max_iterations and step_size > 0: #and value_eq_min >= morozov:
-            # Compute derivatives and simulated temperatures
-            gradient, T_estimated, objective_function, tikhonov, pertubed_temperatures_list = compute_differences(parameters, T_measured, lambda_regul, executor, delta, shape)
+        try:
+            while iterations <= max_iterations and step_size > 0: #and value_eq_min >= morozov:            
+                # Compute derivatives and simulated temperatures
+                iter_group = hf.create_group(f'iteration_{iterations}')
 
-            # Print progress
-            if iterations % 100 == 0:
-                elapsed_time = time.time() - start_time
-                print(f'Iteration {iterations}, Objective Function: {objective_function:,.6f}, '
-                    f'Time: {elapsed_time:.2f}s, step_size: {step_size}, Morozov: {morozov}')
-                start_time = time.time()
+                if iterations % 100 == 0:
+                    elapsed_time = time.time() - start_time
+                    print(f'Iteration {iterations}, Objective Function: {objective_function:,.6f}, '
+                        f'Time: {elapsed_time:.2f}s, step_size: {step_size}, Morozov: {morozov}')
+                    start_time = time.time()
+                    iter_group.attrs['Time_Spent'] = elapsed_time
+                    
 
-            heat_flux = heat_flux_approximation(parameters, angular_size, total_simulation_time)
+                gradient, T_estimated, objective_function, tikhonov, pertubed_temperatures_list = compute_differences(parameters, T_measured, alpha_regul, executor, delta, shape)
 
-            iter_group = hf.create_group(f'iteration_{iterations}')
 
-            # Salve o array heat_flux como um dataset dentro do grupo
-            iter_group.create_dataset('heat_flux', data=heat_flux)
-            iter_group.create_dataset('T_estimated', data=T_estimated)
-            
-            # Salve os valores escalares como atributos do grupo
-            iter_group.attrs['step_size'] = step_size
-            iter_group.attrs['Objective_Function'] = objective_function
-            iter_group.attrs['Tikhonov'] = tikhonov
-            iter_group.attrs['Time_Spent'] = elapsed_time
+                # Salve o array heat_flux como um dataset dentro do grupo
+                iter_group.create_dataset('parameters', data=parameters)
+                
+                # Salve os valores escalares como atributos do grupo
+                iter_group.attrs['step_size'] = step_size
+                iter_group.attrs['Objective_Function'] = objective_function
+                iter_group.attrs['Tikhonov'] = tikhonov
 
-            jacobian = calculate_jacobian(parameters, T_estimated, pertubed_temperatures_list, delta)
+                jacobian = calculate_jacobian(parameters, T_estimated, pertubed_temperatures_list, delta)
 
-            descent_direction = - gradient
+                descent_direction = - gradient
 
-            step_size = root_scalar(calculate_step, args=(jacobian, descent_direction, T_measured, T_estimated, total_simulation_time, lambda_regul, parameters), method='newton', x0=step_size).root
+                step_size = root_scalar(calculate_step, args=(jacobian, descent_direction, T_measured, T_estimated, total_simulation_time, alpha_regul, parameters), method='newton', x0=step_size).root
 
-            parameters = parameters + (step_size * descent_direction)
+                parameters = parameters + (step_size * descent_direction)
 
-            iterations += 1
+                iterations += 1
+
+        except KeyboardInterrupt:
+            print("\n\n🛑 Otimização interrompida pelo usuário.")
+            print("Salvando o progresso final e fechando o arquivo com segurança.")
+            print("Você pode resumir a otimização executando o script novamente.")
 
         end_cpu_time = time.process_time()
         cpu_time_used = end_cpu_time - start_cpu_time
@@ -184,13 +229,13 @@ def optimize_parameters(T_measured: np.ndarray, parameters: np.ndarray, lambda_r
 
     return parameters, T_estimated
 
-def run_optimization(T_measured, max_iterations, lambda_regul: float, executor: futures.Executor,
+def run_optimization(T_measured, max_iterations, alpha_regul: float, executor: futures.Executor,
                      deviation: float, shape: tuple, N: int = 6) -> Tuple[np.ndarray, float, float]:
     """
     Runs the optimization process.
 
     Parameters:
-    lambda_regul (float): Regularization parameter.
+    alpha_regul (float): Regularization parameter.
     executor (futures.Executor): Executor for parallel computation.
     deviation (float): Deviation for Morozov's discrepancy principle.
 
@@ -207,7 +252,7 @@ def run_optimization(T_measured, max_iterations, lambda_regul: float, executor: 
     args = optimize_parameters(
         T_measured          = T_measured, 
         parameters      = parameters, 
-        lambda_regul    = lambda_regul,
+        alpha_regul    = alpha_regul,
         executor        = executor,
         deviation       = deviation,
         step_size       = step_size,
@@ -216,6 +261,7 @@ def run_optimization(T_measured, max_iterations, lambda_regul: float, executor: 
         )
 
     return args
+
 
 def heat_flux_approximation(parameters: np.ndarray, angular_size: int, experimental_time) -> np.ndarray:
     """

@@ -59,7 +59,7 @@ def load_or_generate_random_values(mesh_size: int, filename: str = None) -> np.n
     """
     if os.path.exists(filename):
         # If the file exists, load the saved array
-        values = np.load(filename)
+        values = np.load(filename)[-1]
         print(f"Loaded array from {filename} with shape {values.shape}")
     else:
         # If the file does not exist, generate a new array and save it

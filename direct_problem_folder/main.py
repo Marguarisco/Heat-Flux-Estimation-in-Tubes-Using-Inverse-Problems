@@ -46,7 +46,7 @@ def main():
     running_time = final_time - start_time
     running_time_process = final_time_process - start_time_process
 
-    path = "C:/Users/marce/Desktop/TCC/Direct Problem/Results/"
+    path = "Results/"
 
     print(f"Salvando resultados com a forma: {results.shape}")
 

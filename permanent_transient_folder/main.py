@@ -8,8 +8,7 @@ from utils import run_experiment, load_or_generate_random_values
 path = 'permanent_transient_folder/data/'
 
 deviations = [0.1, 0.5]
-lambda_list = np.logspace(-10, -5, num=10)
-lambda_list = lambda_list[1:]
+alpha_list = np.logspace(-8, -7, num=4)
 
 radial_size = 9
 angular_size = 80
@@ -52,16 +51,16 @@ if __name__ == '__main__':
         for deviation in deviations:
             T_measured += (deviation * random_values)
 
-            # Iterate over each lambda value
-            for lambda_regul in lambda_list:
-                # Print the current lambda and deviation being executed
-                print(f"Executing for Lambda: {lambda_regul:.0e}, Deviation: {deviation}")
+            # Iterate over each alpha value
+            for alpha_regul in alpha_list:
+                # Print the current alpha and deviation being executed
+                print(f"Executing for alpha: {alpha_regul:.0e}, Deviation: {deviation}")
 
                 # Run the optimization process
                 args = run_optimization(
                     T_measured = T_measured,
                     max_iterations = max_iterations,
-                    lambda_regul = lambda_regul,
+                    alpha_regul = alpha_regul,
                     executor = executor, 
                     deviation = deviation,
                     shape = shape)

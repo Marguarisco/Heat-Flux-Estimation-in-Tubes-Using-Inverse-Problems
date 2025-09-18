@@ -7,16 +7,15 @@ from utils import run_experiment, load_or_generate_random_values
 
 path = 'permanent_folder/data/'
 
-deviations = [0.5]
-lambda_list = np.logspace(-14, -10, num=5)
-lambda_list = lambda_list[:-1]
+deviations = [0.1, 0.5]
+alpha_list = np.logspace(-10, -5, num=10)
 
 radial_size = 9
 angular_size = 80
 
 num_sensors = 20
-max_simulation_time = 1e10
-max_iterations = 1500
+max_simulation_time = 19000
+max_iterations = 1000
 
 
 if __name__ == '__main__':
@@ -24,7 +23,7 @@ if __name__ == '__main__':
 
     if os.path.exists(filename):
         # If the file exists, load the saved array
-        values = np.load(filename)['estimated_temperature']
+        values = np.load(filename)['estimated_temperature'][-1]
         print(f"Loaded array from {filename} and shape {values.shape}")
 
     else:
@@ -35,11 +34,11 @@ if __name__ == '__main__':
 
     T_measured = values
     reduction_factor = int(angular_size / num_sensors)
-    T_measured = T_measured[::reduction_factor,-1]
+    T_measured = T_measured[::reduction_factor]
     
     shape = (num_sensors, radial_size)
 
-    filename = path + f'random_values_{num_sensors}.npy'
+    filename = path + f'random_values_{max_simulation_time}x{num_sensors}.npy'
     random_values = load_or_generate_random_values(num_sensors, filename)
 
     # Get the number of available CPU cores
@@ -50,16 +49,16 @@ if __name__ == '__main__':
         for deviation in deviations:
             T_measured += (deviation * random_values)
 
-            # Iterate over each lambda value
-            for lambda_regul in lambda_list:
-                # Print the current lambda and deviation being executed
-                print(f"Executing for Lambda: {lambda_regul:.0e}, Deviation: {deviation}")
+            # Iterate over each alpha value
+            for alpha_regul in alpha_list:
+                # Print the current alpha and deviation being executed
+                print(f"Executing for alpha: {alpha_regul:.0e}, Deviation: {deviation}")
 
                 # Run the optimization process
                 args = run_optimization(
                     T_measured = T_measured,
                     max_iterations = max_iterations,
-                    lambda_regul = lambda_regul,
+                    alpha_regul = alpha_regul,
                     executor = executor, 
                     deviation = deviation,
                     shape = shape)

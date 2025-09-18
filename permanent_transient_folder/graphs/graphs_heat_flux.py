@@ -3,8 +3,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # --- 1. CONFIGURAÇÃO ---
+path = "permanent_transient_folder/output/"
+
+deviations = [0.1, 0.5]
+deviation = deviations[1]
+lambda_list = np.logspace(-10, -5, num=10)
+lambda_regul = lambda_list[4]
+
 # Cole o caminho completo para o arquivo HDF5 que contém o heat_flux a ser comparado
-caminho_complepleto_do_h5 = "permanent_transient_folder/output/data_6e-08_0.5_1e+03" # EX: ajuste para o seu arquivo
+caminho_complepleto_do_h5 = path + f"data_{lambda_regul:.0e}_{deviation}_1e+03" # EX: ajuste para o seu arquivo
 # --- FIM DA CONFIGURAÇÃO ---
 
 try:
@@ -87,7 +94,7 @@ try:
     ax.set_title("Comparação: Heat Flux Estimado vs. Ideal", fontsize=14)
     ax.grid(True, linestyle=':')
     ax.legend(loc='upper left', ncol=2, frameon=False) # Legenda no canto superior esquerdo, sem moldura
-    
+
     # Ajusta os limites do eixo Y para que comece em zero ou um pouco abaixo
     current_ymin, current_ymax = ax.get_ylim()
     ax.set_ylim(min(0, current_ymin), current_ymax * 1.05) # Começa em 0 ou abaixo, e com 5% de margem no topo

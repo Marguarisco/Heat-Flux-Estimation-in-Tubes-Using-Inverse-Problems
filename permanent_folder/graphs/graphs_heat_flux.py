@@ -3,8 +3,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # --- 1. CONFIGURAÇÃO ---
+path = "permanent_folder/output/"
+
+deviations = [0.1, 0.5]
+deviation = deviations[1]
+lambda_list = np.logspace(-10, -5, num=10)
+lambda_regul = lambda_list[6]
+# 2e-0(6) e 0.5(1)
+
+print(f"{lambda_regul:.0e}")
 # Cole o caminho completo para o arquivo HDF5 que contém o heat_flux a ser comparado
-caminho_complepleto_do_h5 = "permanent_folder/output/data_1e-05_0.5_2e+03" # EX: ajuste para o seu arquivo
+caminho_complepleto_do_h5 = path + f"data_{lambda_regul:.0e}_{deviation}_2e+03" # EX: ajuste para o seu arquivo
 # --- FIM DA CONFIGURAÇÃO ---
 
 try:
@@ -15,7 +24,7 @@ try:
             print("Nenhuma iteração encontrada no arquivo para extrair o heat_flux estimado.")
             exit() # Sai do script se não houver dados
             
-        last_iter_num = max([int(k.split('_')[1]) for k in iter_keys])
+        last_iter_num= 1000
         last_iter_group = hf[f'iteration_{last_iter_num}']
         
         # Carrega o heat_flux estimado

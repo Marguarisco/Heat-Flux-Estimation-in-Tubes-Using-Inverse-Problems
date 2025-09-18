@@ -27,7 +27,7 @@ for file_path in file_paths:
                 print(f"  - Aviso: Arquivo {os.path.basename(file_path)} não contém iterações. Pulando.")
                 continue
             
-            last_iter_num = max([int(k.split('_')[1]) for k in iter_keys])
+            last_iter_num= 1000
             last_iter_group = hf[f'iteration_{last_iter_num}']
             
             # Extrai os atributos da última iteração
@@ -99,7 +99,8 @@ for deviation, group_df in grouped_by_deviation:
     plt.xlabel("Residual norm || Ax - b ||", fontsize=12)
     plt.ylabel("Solution norm ||x||", fontsize=12)
     plt.title(f"L-Curve - Deviation = {deviation}", fontsize=14)
-
+    plt.yscale('log')
+    plt.xscale('log')
 
     plt.grid(True, which="both", linestyle=':')
     plt.show()

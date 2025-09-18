@@ -1,9 +1,12 @@
-direct_problem_folder/Results
+
 permanent_folder/data
 permanent_folder/teste.py
 
 permanent_folder/output
+permanent_folder/output_out
+permanent_folder/output_old
 permanent_transient_folder/output
-permanent_transient_folder/output_side
+permanent_transient_folder/output_out
 transient_folder/output
+transient_folder/output out
 results
