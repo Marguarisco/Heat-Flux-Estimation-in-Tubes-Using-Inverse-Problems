@@ -1,6 +1,5 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import mplcursors
 
 time = 1000
 N = 2

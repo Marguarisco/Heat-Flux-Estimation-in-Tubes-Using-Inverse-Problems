@@ -3,7 +3,7 @@ import numpy as np
 import time
 
 def main():
-    method = 'adi'
+    method = 'E'
 
     #Lembrar de muda o fluxheat caso seja diferente!!
 

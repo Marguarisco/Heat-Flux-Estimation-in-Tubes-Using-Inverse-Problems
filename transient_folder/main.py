@@ -7,17 +7,17 @@ from utils import run_experiment, load_or_generate_random_values
 
 path = 'transient_folder/data/'
 
-deviations = [0.5]
+deviations = [0.1]
 alpha_regul = 0
 
 radial_size = 9
 angular_size = 80
 
 num_sensors = 20
-total_simulation_time = 10800
-max_iterations = 10000
+total_simulation_time = 3600
+max_iterations = 200000
 
-N_list = [1, 3, 5]
+N_list = [2, 4, 6, 8]
 
 if __name__ == '__main__':
     filename = path + f"direct_problem_{radial_size}_{angular_size}_{total_simulation_time}.npz"

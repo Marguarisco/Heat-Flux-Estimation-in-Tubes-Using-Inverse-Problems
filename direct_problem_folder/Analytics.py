@@ -13,9 +13,9 @@ def norms_vs_exact(T_num):
         linf[n] = np.max(np.abs(diff))
     return l2, linf
 
-initial_path ='C:/Users/marce/Desktop/TCC/Direct Problem/Results/resultados_'
+initial_path ="direct_problem_folder/Results/resultados_"
 
-method = 'ADI'
+method = 'Explicit'
 
 dados = np.load(initial_path + f'{method}_completo_25_3_6000.npz')
 

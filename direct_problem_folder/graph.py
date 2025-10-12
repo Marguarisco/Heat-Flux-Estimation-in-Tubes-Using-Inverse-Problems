@@ -16,7 +16,7 @@ def graph_solo(T, dt, method):
     """
     # --- 1. Configuração da Malha e Parâmetros ---
     num_passos_tempo, num_angulos, num_raios = T.shape
-    tempos_para_salvar = [0, 1, 5, 10, 50, 100, 599]
+    tempos_para_salvar = [0, 1, 5, 10, 20, 50, 100, 599]
     R = np.linspace(0.1, 0.15, num_raios)
     T_init = T[0, -1, :]
 
@@ -29,19 +29,27 @@ def graph_solo(T, dt, method):
         print(f"Gerando gráfico para o método '{method}' no tempo = {tempo_s}s...")
         T_estimativa = T[indice_quadro, -1, :]
 
-        # --- 3. Lógica de Plotagem (Gráfico Único) ---
         fig, ax = plt.subplots(figsize=(8, 6))
-        ax.plot(R, T_init, 'k--', linewidth=1.5, label='Temp. Inicial')
+        #ax.plot(R, T_init, 'k--', linewidth=1.5, label='Temp. Inicial')
         ax.plot(R, T_estimativa, 'bo-', markersize=4, label=f'Resultado')
-        ax.set_title(f'Perfil de Temperatura - Tempo = {tempo_s:.1f} s')
-        ax.set_xlabel('Posição Radial (m)')
+
+        max_abs_val = np.abs(T_estimativa).max()
+        # Adiciona uma margem de 10% para que os pontos não fiquem na borda
+        limite_eixo_y = max_abs_val * 1.1 
+        # Define os limites do eixo Y para serem simétricos em torno de 0
+        ax.set_ylim(-limite_eixo_y, limite_eixo_y)
+
+        # --- 3. Lógica de Plotagem (Gráfico Único) ---
+        
+        #ax.set_title(f'Método {method} - Tempo = {tempo_s:.1f} s')
+        ax.set_xlabel('Raio (m)')
         ax.set_ylabel('Temperatura (K)')
         ax.legend()
         ax.grid(True, linestyle=':')
-        ax.yaxis.set_major_formatter(mticker.FormatStrFormatter('%.2f'))
+        ax.yaxis.set_major_formatter(mticker.FormatStrFormatter('%.2e'))
 
         # --- 4. Salvar a Figura ---
-        path = 'C:/Users/marce/Desktop/TCC/Direct Problem/Results/'
+        path = 'direct_problem_folder/Results/'
         nome_arquivo = path + f'solo_{method}_tempo_{int(tempo_s)}s.png'
         plt.savefig(nome_arquivo, dpi=300, bbox_inches='tight')
         plt.close(fig)
@@ -94,7 +102,7 @@ def gif_solo(T, dt, method):
     # --- 4. Criar e Salvar a Animação ---
     ani = animation.FuncAnimation(fig, update, frames=num_quadros_final, interval=50)
     print("\nSalvando o GIF...")
-    path = 'C:/Users/marce/Desktop/TCC/Direct Problem/Results/'
+    path = 'direct_problem_folder/Results/'
     nome_arquivo = path + f'solo_{method}.gif'
     ani.save(nome_arquivo, writer='pillow', fps=15, dpi=100)
     plt.close(fig)
@@ -118,64 +126,166 @@ def graph_temp_time(T, method):
 
 # Graphs made for comparison between analitic data
 def graph_comparison_analitic(T, dt, method):
-    dados_analitico = pd.read_csv('C:/Users/marce/Desktop/Old Code Versions/Dados_comparação/dados_2d_Bruno_v.2.csv', header = None)
-
+    dados_analitico = pd.read_csv('C:/Users/marce/Desktop/Old Code Versions/Dados_comparação/dados_2d_Bruno_v.2.csv', header=None)
+    
     num_passos_tempo, num_angulos, num_raios = T.shape
-
-    tempos_para_salvar = [0, 1, 5, 10, 50, 100, 599]
-
-    R = np.linspace(0.1, 0.15, num_raios) # Malha Radial
-
-    plt.figure(figsize=(8, 6))
-    ax1 = plt.subplot2grid((1, 3), (0, 0), colspan = 2)
-    ax2 = plt.subplot2grid((1, 3), (0, 2))
-
-    T_init = T[0,-1,:]
+    tempos_para_salvar = [0, 1, 5, 10, 50, 100, 150, 300, 450, 599]
+    R = np.linspace(0.1, 0.15, num_raios)
 
     for tempo_s in tempos_para_salvar:
-        # Converte o tempo em segundos para o índice do quadro (frame)
-        indice_quadro = int(tempo_s / dt)
+        '''indice_quadro = int(tempo_s / dt)
         
-        # Medida de segurança: verifica se o índice calculado existe na sua simulação
         if indice_quadro >= num_passos_tempo:
-            print(f"Aviso: O tempo {tempo_s}s (quadro {indice_quadro}) está além da duração da simulação. Gráfico não gerado.")
-            continue # Pula para o próximo tempo da lista
-
-        print(f"Gerando gráfico para o tempo = {tempo_s}s (quadro = {indice_quadro})...")
+            print(f"Aviso: O tempo {tempo_s}s está além da simulação. Gráfico não gerado.")
+            continue
+        '''
+        print(f"Gerando gráfico para o tempo = {tempo_s}s...")
+        indice_quadro = tempo_s*10
         
-        # --- 3. Lógica de Plotagem (quase idêntica à sua) ---
+        # --- 1. Preparação dos Dados ---
         T_analitico = dados_analitico.iloc[:, indice_quadro].to_numpy()
         T_estimativa = T[indice_quadro, -1, :]
-        T_diff = T_estimativa - T_analitico
+        
+        # Cuidado com divisão por zero. Onde T_analitico é 0, o erro também será 0.
+        erro_relativo_percent = np.zeros_like(T_analitico)
+        # Usamos np.divide para evitar erros quando T_analitico for zero
+        np.divide(
+            np.abs(T_estimativa - T_analitico), 
+            T_analitico, 
+            out=erro_relativo_percent, 
+            where=T_analitico!=0
+        )
+        erro_relativo_percent *= 100 # Converter para porcentagem
 
-        # Cria uma nova figura para cada tempo
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6), gridspec_kw={'width_ratios': [2, 1]})
-        fig.set_tight_layout(True)
+        # Criamos uma figura e o eixo principal (ax1)
+        fig, ax1 = plt.subplots(figsize=(10, 6))
+        # Criamos o eixo secundário (ax2) que compartilha o eixo x com ax1
+        ax2 = ax1.twinx()
+
+        # Plot das Temperaturas no eixo da ESQUERDA (ax1)
+        # Note que mudei o label para "MATLAB" e o estilo para combinar com a imagem
+        ax1.plot(R, T_analitico, 'k-', lw = 1.5, label="Ansys")
+        ax1.plot(R, T_estimativa, 'bo', markersize=5, label="Estimativa")
+        ax1.set_ylim(300, 305)
+
+        # Plot do Erro Relativo no eixo da DIREITA (ax2)
+        ax2.plot(R, erro_relativo_percent, 'k--', lw = 1,  label="Erro relativo")
+
+        # Eixo X principal
+        ax1.set_xlabel('Raio (m)')
         
-        # Plot da Comparação
-        ax1.plot(R, T_init, 'k--', linewidth=1.5, label='Temp. Inicial')
-        ax1.plot(R, T_estimativa, 'bo-', markersize=4, label="Estimativa")
-        ax1.plot(R, T_analitico, 'r^--', markersize=5, label="Analítico")
-        ax1.set_title(f'Comparação de Temperaturas (Tempo = {tempo_s:.1f} s)')
-        ax1.set_xlabel('Posição Radial (m)'); ax1.set_ylabel('Temperatura (K)')
-        ax1.legend(); ax1.grid(True, linestyle=':')
-        ax1.yaxis.set_major_formatter(mticker.FormatStrFormatter('%.2f'))
+        # Eixo Y da Esquerda (Temperatura)
+        ax1.set_ylabel('Temperatura (K)') # Ajustado para combinar com a imagem
+        ax1.grid(True, linestyle=':') # Grid principal
+        ax1.yaxis.set_major_formatter(mticker.FormatStrFormatter('%.0f')) # Formato sem casas decimais
+
+        # Eixo Y da Direita (Erro)
+        ax2.set_ylabel('Erro relativo (%)')
+
+        ax2.set_ylim(0, 0.005)
+        # Formata o eixo para adicionar o sufixo "%"
+        ax2.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=100, decimals=3)) 
         
-        # Plot da Diferença
-        ax2.plot(R, T_diff, 'ko-', markersize=4)
-        ax2.set_title('Diferença (Estimativa - Analítico)')
-        ax2.set_xlabel('Posição Radial (m)'); ax2.set_ylabel('Temperatura (K)')
-        ax2.set_ylim(-0.005, 0.005); ax2.axhline(0, color='k', lw=0.5)
-        ax2.grid(True, linestyle=':')
-        
-        # --- 4. Salvar a Figura ---
-        # Cria um nome de arquivo dinâmico para cada imagem. Usar PNG é melhor para gráficos.
-        path = 'C:/Users/marce/Desktop/TCC/Direct Problem/Results/'
-        nome_arquivo = path + f'comparacao_tempo_{method}_{int(tempo_s)}s.png'
+        # Unificar legendas de ax1 e ax2
+        h1, l1 = ax1.get_legend_handles_labels()
+        h2, l2 = ax2.get_legend_handles_labels()
+        ax1.legend(h1 + h2, l1 + l2, loc='upper right', ncol=1)
+
+        # Título geral
+        fig.tight_layout(rect=[0, 0, 1, 0.96]) # Ajusta layout para o super-título
+
+        # --- 5. Salvar a Figura ---
+        path = 'direct_problem_folder/Results/'
+        nome_arquivo = path + f'comparacao_erro_relativo_{method}_{int(tempo_s)}s.png'
         plt.savefig(nome_arquivo, dpi=300, bbox_inches='tight')
-        
-        # Fecha a figura para liberar memória antes de criar a próxima
         plt.close(fig)
+
+    print("\nGráficos de comparação com erro relativo gerados com sucesso!")
+
+def graph_comparison_error(T_explicit, T_implicit, T_adi):
+    dados_analitico = pd.read_csv('C:/Users/marce/Desktop/Old Code Versions/Dados_comparação/dados_2d_Bruno_v.2.csv', header=None)
+    
+    num_passos_tempo, num_angulos, num_raios = T_explicit.shape
+    print(T_explicit.shape)
+    tempos_para_salvar = [0, 1, 5, 10, 50, 100, 150, 300, 450, 599]
+    R = np.linspace(0.1, 0.15, num_raios)
+
+    for tempo_s in tempos_para_salvar:
+        print(f"Gerando gráfico para o tempo = {tempo_s}s...")
+        indice_quadro = tempo_s*10
+        
+        # --- 1. Preparação dos Dados ---
+        T_analitico = dados_analitico.iloc[:, indice_quadro].to_numpy()
+        T_est_explicit = T_explicit[indice_quadro, -1, :]
+        T_est_implicit = T_implicit[indice_quadro, -1, :]
+        T_est_adi = T_adi[indice_quadro, -1, :]
+        
+        # Cuidado com divisão por zero. Onde T_analitico é 0, o erro também será 0.
+        erro_relativo_percent_e = np.zeros_like(T_analitico)
+        erro_relativo_percent_i = np.zeros_like(T_analitico)
+        erro_relativo_percent_a = np.zeros_like(T_analitico)
+
+        # Usamos np.divide para evitar erros quando T_analitico for zero
+        np.divide(
+            np.abs(T_est_explicit - T_analitico), 
+            T_analitico, 
+            out=erro_relativo_percent_e, 
+            where=T_analitico!=0
+        )
+        erro_relativo_percent_e *= 100 # Converter para porcentagem
+
+        # Usamos np.divide para evitar erros quando T_analitico for zero
+        np.divide(
+            np.abs(T_est_implicit - T_analitico), 
+            T_analitico, 
+            out=erro_relativo_percent_i, 
+            where=T_analitico!=0
+        )
+        erro_relativo_percent_i *= 100 # Converter para porcentagem
+
+        # Usamos np.divide para evitar erros quando T_analitico for zero
+        np.divide(
+            np.abs(T_est_adi - T_analitico), 
+            T_analitico, 
+            out=erro_relativo_percent_a, 
+            where=T_analitico!=0
+        )
+        erro_relativo_percent_a *= 100 # Converter para porcentagem
+
+        # Criamos uma figura e o eixo principal (ax1)
+        fig, ax1 = plt.subplots(figsize=(10, 6))
+
+        # Plot das Temperaturas no eixo da ESQUERDA (ax1)
+        # Note que mudei o label para "MATLAB" e o estilo para combinar com a imagem
+        ax1.plot(R, erro_relativo_percent_e, 'k+', markersize=2, label="Explicit")
+        ax1.plot(R, erro_relativo_percent_i, 'bo', markersize=2, label="Implicit")
+        ax1.plot(R, erro_relativo_percent_a, 'rp', markersize=2, label="ADI")
+
+        # Eixo X principal
+        ax1.set_xlabel('Raio (m)')
+        
+        # Eixo Y da Esquerda (Temperatura)
+        ax1.set_ylabel('Error') # Ajustado para combinar com a imagem
+        ax1.grid(True, linestyle=':') # Grid principal
+        ax1.yaxis.set_major_formatter(mticker.FormatStrFormatter('%.0f')) # Formato sem casas decimais
+
+    
+        
+        # Unificar legendas de ax1 e ax2
+        h1, l1 = ax1.get_legend_handles_labels()
+
+        ax1.legend(h1, l1, loc='upper right', ncol=1)
+
+        # Título geral
+        fig.tight_layout(rect=[0, 0, 1, 0.96]) # Ajusta layout para o super-título
+
+        # --- 5. Salvar a Figura ---
+        path = 'direct_problem_folder/Results/'
+        nome_arquivo = path + f'comparacao_erro_relativo_error_{int(tempo_s)}s.png'
+        plt.savefig(nome_arquivo, dpi=300, bbox_inches='tight')
+        plt.close(fig)
+
+    print("\nGráficos de comparação com erro relativo gerados com sucesso!")
 
 def gif_comparison_analitic(T, method):
     """
@@ -225,7 +335,7 @@ def gif_comparison_analitic(T, method):
         ax1.clear()
         ax1.plot(R, T_init, 'k--', label='Temp. Inicial')
         ax1.plot(R, T_estimativa, 'bo-', label="Estimativa")
-        ax1.plot(R, T_analitico, 'r^--', label="Analítico")
+        ax1.plot(R, T_analitico, 'r^--', label="Ansys")
         ax1.set_title(f'Comparação (Tempo = {passo_de_tempo_atual / 10.0:.1f} s)')
         ax1.set_xlabel('Posição Radial (m)'); ax1.set_ylabel('Temperatura (K)')
         ax1.legend(); ax1.grid(True, linestyle=':')
@@ -233,7 +343,7 @@ def gif_comparison_analitic(T, method):
         
         ax2.clear()
         ax2.plot(R, T_diff, 'ko-')
-        ax2.set_title('Diferença (Estimativa - Analítico)'); 
+        ax2.set_title('Diferença (Estimativa - Ansys)'); 
         ax2.set_xlabel('Posição Radial (m)'); ax2.set_ylabel('Temperatura (K)')
         ax2.set_ylim(-0.005, 0.005); ax2.axhline(0, color='k', lw=0.5)
         ax2.grid(True, linestyle=':')

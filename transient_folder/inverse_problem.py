@@ -123,7 +123,7 @@ def optimize_parameters(T_measured: np.ndarray, parameters: np.ndarray, alpha_re
 
     delta = 1e-8
     N = int((len(parameters) - 1) / 4)
-    filename = path + f"data_{deviation}_{max_iterations:.1e}_{N}"
+    filename = path + f"data_{deviation}_{max_iterations:.1e}_{N}_{shape[0]}"
 
     if os.path.exists(filename):
         print(f"Arquivo '{filename}' encontrado. Tentando resumir a otimização.")
@@ -153,8 +153,8 @@ def optimize_parameters(T_measured: np.ndarray, parameters: np.ndarray, alpha_re
                 objective_function = last_group.attrs['Objective_Function']
                 step_size = last_group.attrs['step_size']
                 iterations = resume_iter_num + 1
-                if max_iterations <= resume_iter_num:
-                    max_iterations = resume_iter_num + 10000
+                if max_iterations - 1000 <= resume_iter_num:
+                    max_iterations = resume_iter_num + 80000
             else:
                 # O arquivo existe, mas está vazio ou corrompido. Melhor começar de novo.
                 print("Arquivo existe, mas não contém dados de iteração. Um novo arquivo será criado.")
@@ -192,7 +192,7 @@ def optimize_parameters(T_measured: np.ndarray, parameters: np.ndarray, alpha_re
                 if iterations % 100 == 0:
                     elapsed_time = time.time() - start_time
                     print(f'Iteration {iterations}, Objective Function: {objective_function:,.6f}, '
-                        f'Time: {elapsed_time:.2f}s, step_size: {step_size}, Morozov: {morozov}')
+                        f'Time: {elapsed_time:.2f}s, step_size: {step_size}, Morozov: {morozov:,.0f}')
                     start_time = time.time()
                     iter_group.attrs['Time_Spent'] = elapsed_time
                     

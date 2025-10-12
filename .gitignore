@@ -1,12 +1,32 @@
 
+direct_problem_folder/erro_relativo.py
+direct_problem_folder/graph.py
+direct_problem_folder/Analytics.py
+direct_problem_folder/plot.py
+direct_problem_folder/plot_all.py
+direct_problem_folder/mesh_convergence.py
+
+
 permanent_folder/data
 permanent_folder/teste.py
-
 permanent_folder/output
 permanent_folder/output_out
 permanent_folder/output_old
+permanent_folder/graphs
+
+
+
 permanent_transient_folder/output
 permanent_transient_folder/output_out
+permanent_transient_folder/data
+permanent_transient_folder/graphs
+
+
 transient_folder/output
-transient_folder/output out
+transient_folder/output_out
+transient_folder/graphs
+transient_folder/data
+transient_folder/graph_q_all.py
+
 results
+direct_problem_folder/Results

@@ -65,44 +65,46 @@ for deviation, group_df in grouped_by_deviation:
     # --- MUDANÇA PRINCIPAL AQUI ---
     # Experimente valores onde a altura é maior que a largura
     # Exemplo 1: Proporção invertida
-    plt.figure(figsize=(8, 10)) 
+    fig, ax = plt.subplots(figsize=(10, 12))
     
     # Exemplo 2: Ainda mais "esticado"
     # plt.figure(figsize=(6, 10)) 
     # --- FIM DA MUDANÇA ---
     
     # Plota os pontos e a linha tracejada
-    plt.plot(
+    ax.plot(
         sorted_group['residual_norm'].to_numpy(), 
         sorted_group['solution_norm'].to_numpy(), 
         marker='D',           # Marcador de diamante
         linestyle='--',      # Linha tracejada
-        color='blue'
+        color='blue',
+        markersize=5
     )
     
     # ... (o resto do seu código continua exatamente o mesmo) ...
-    
+    i = 0
     # Adiciona os rótulos de lambda em cada ponto
     for _, row in sorted_group.iterrows():
-        plt.text(
+        if i not in [1,2]:
+            ax.text(
             row['residual_norm'], 
             row['solution_norm'],
-            f" {row['lambda']:.1e}", 
+            r'$\alpha=$'+f"{row['lambda']:.1e}", 
             fontsize=9,
             ha='left',
             va='bottom'
         )
+        i +=1
     
     
 
     # Configurações do gráfico
-    plt.xlabel("Residual norm || Ax - b ||", fontsize=12)
-    plt.ylabel("Solution norm ||x||", fontsize=12)
-    plt.title(f"L-Curve - Deviation = {deviation}", fontsize=14)
-    plt.yscale('log')
-    plt.xscale('log')
+    ax.set_xlabel(r'Norma da solução $||Ax_{\alpha} - b||_2$', fontsize=14)
+    ax.set_ylabel(r'Norma da solução $||x_{\alpha}||_2$', fontsize=14)
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+    ax.grid(True, which="both", linestyle=':')
 
-    plt.grid(True, which="both", linestyle=':')
     plt.show()
 
 print("\nProcesso concluído!")

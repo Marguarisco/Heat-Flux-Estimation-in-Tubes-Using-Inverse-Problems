@@ -1,93 +1,102 @@
-import h5py
 import numpy as np
 import matplotlib.pyplot as plt
+import h5py
+import os
 
-# --- 1. CONFIGURAÇÃO ---
-# Edite os valores abaixo para selecionar o arquivo de resultado correto.
-path = "permanent_transient_folder/output/"
+# --- Parâmetros (ajuste conforme necessário para corresponder à sua simulação) ---
+radial_size = 9
+angular_size = 80
+num_sensors = 20
+total_simulation_time = 19000
+max_iterations = 1000
+deviation = 0.5
+# O valor de alpha_regul é retirado de `main.py`: alpha_list[5:6] com np.logspace(-10, -5, num=10)
+alpha_regul = np.logspace(-10, -5, num=10)[5]
 
-deviations = [0.1, 0.5]
-deviation = deviations[0]  # Mude o índice para 0 se quiser o desvio de 0.1
+# --- Caminhos para os arquivos ---
+# Certifique-se de que estes caminhos estejam corretos para a sua estrutura de pastas
+path_data = 'permanent_transient_folder/data/'
+path_output = 'permanent_transient_folder/output/'
 
-lambda_list = np.logspace(-10, -5, num=10)
-lambda_regul = lambda_list[6] # Mude o índice para escolher outro lambda
+# --- Nomes dos arquivos ---
+direct_problem_filename = os.path.join(path_data, f"direct_problem_{radial_size}_{angular_size}_{total_simulation_time:.0e}.npz")
+optimization_results_filename = os.path.join(path_output, f"data_{alpha_regul:.0e}_{deviation}_{max_iterations:.0e}")
 
-# O nome do arquivo será montado a partir dos parâmetros acima
-# Exemplo: data_2e-07_0.5_2e+03.hdf5
-nome_arquivo = f"data_{lambda_regul:.0e}_{deviation}_1e+03"
-caminho_completo_do_h5 = path + nome_arquivo
-# --- FIM DA CONFIGURAÇÃO ---
+with np.load(direct_problem_filename) as data:
+    T_real_full = data['estimated_temperature']
 
-print(f"Tentando carregar o arquivo: {caminho_completo_do_h5}")
+# --- Carregar Temperatura Simulada (do resultado da otimização) ---
+try:
+    with h5py.File(optimization_results_filename, 'r') as hf:
+        # Encontrar a última iteração para obter o resultado final
+        iterations = [int(key.split('_')[1]) for key in hf.keys() if key.startswith('iteration_')]
+        if iterations:
+            last_iteration = max(iterations)
+            T_simulada = hf[f'iteration_{last_iteration}']['T_estimated'][:]
+            print(f"Dados de temperatura simulada carregados da iteração {last_iteration} de: {optimization_results_filename}")
+        else:
+            print("Nenhuma iteração encontrada no arquivo de resultados da otimização.")
+except FileNotFoundError:
+    print(f"Erro: Arquivo de resultados da otimização não encontrado em '{optimization_results_filename}'")
 
-with h5py.File(caminho_completo_do_h5, 'r') as hf:
-    # Carrega a Temperatura Medida
-    if 'T_measured' in hf:
-        T_medida = hf['T_measured'][:]
-    else:
-        print("Dataset 'T_measured' não encontrado no arquivo.")
-        exit()
+shift_real = angular_size // 2
+shift_simulado = num_sensors // 2
 
-    # Carrega a Temperatura Estimada da última iteração
-    iter_keys = [k for k in hf.keys() if k.startswith('iteration_')]
-    if not iter_keys:
-        print("Nenhuma iteração encontrada no arquivo para extrair a T_estimated.")
-        exit()
-        
-    last_iter_num = max([int(k.split('_')[1]) for k in iter_keys])
-    last_iter_group = hf[f'iteration_{last_iter_num}']
-    
-    if 'T_estimated' in last_iter_group:
-        T_estimada = last_iter_group['T_estimated'][:]
-    else:
-        print(f"Dataset 'T_estimated' não encontrado na última iteração ({last_iter_num}).")
-        exit()
-        
-# --- 2. PREPARAÇÃO DOS DADOS PARA O EIXO X ---
-num_sensores = T_medida.shape[1]
-indices_sensores = np.arange(num_sensores)
+# Usa np.roll para rotacionar a primeira metade do array para o final
+# O deslocamento é negativo para mover da esquerda para a direita
+T_real_full = np.roll(T_real_full, shift=-shift_real, axis=1)
+T_simulada = np.roll(T_simulada, shift=-shift_simulado, axis=1)
 
-# --- 3. GERAÇÃO DO GRÁFICO (COM NOVO ESTILO) ---
-fig, ax = plt.subplots(figsize=(10, 8))
+# --- Preparar dados para plotagem ---
+# Reduzir a resolução da temperatura real para corresponder à temperatura simulada
+# (baseado no número de sensores usados na otimização)
+reduction_factor = int(angular_size / num_sensors)
+T_real_full[0,:] = np.full(len(T_real_full[0]), 300)
+T_real_reduced = T_real_full[:, ::reduction_factor]
+T_simulada[0,:] = np.full(len(T_simulada[0]), 300)
 
-# Plota a Temperatura Medida (azul claro, linha contínua, marcador 'o')
-ax.plot(
-    indices_sensores,
-    T_medida[-1],
-    marker='o',
-    markersize=5,
-    linestyle='-',
-    color='lightskyblue', # Cor alterada para azul claro
-    label='Temperatura Medida'
-)
 
-# Plota a Temperatura Estimada (azul escuro, linha contínua, marcador 'o')
-ax.plot(
-    indices_sensores,
-    T_estimada[-1],
-    marker='o',       # Marcador alterado para 'o'
-    markersize=5,
-    linestyle='-',    # Linha alterada para contínua
-    color='darkblue', # Cor alterada para azul escuro
-    label='Temperatura Estimada'
-)
-    
-# --- Configurações do Gráfico (estilo da imagem) ---
-ax.set_xlabel("Índice do Sensor", fontsize=12)
-ax.set_ylabel("Temperatura (K)", fontsize=12)
-ax.set_title("Comparação: Temperatura Estimada vs. Medida", fontsize=14)
-ax.grid(True, linestyle=':')
+# Calcular a diferença de temperatura
+T_diff = T_simulada - T_real_reduced
 
-# Legenda no canto superior esquerdo, 2 colunas, sem borda
-ax.legend(loc='upper left', ncol=2, frameon=False)
+# Configurar eixos para os gráficos
+tempo = np.arange(total_simulation_time)
+posicao_angular_real = np.linspace(0, 360, angular_size, endpoint=False)
+posicao_angular_simulada = np.linspace(0, 360, num_sensors, endpoint=False)
 
-# Ajusta os limites do eixo Y
-min_temp = min(np.min(T_medida[-1]), np.min(T_estimada[-1]))
-max_temp = max(np.max(T_medida[-1]), np.max(T_estimada[-1]))
-ax.set_ylim(min_temp - 5, max_temp + 5) # Adiciona uma pequena margem
 
-# Configura os ticks do eixo X
-ax.set_xticks(np.arange(0, num_sensores, step=max(1, num_sensores//10)))
+# --- Gerar Gráficos ---
+fig = plt.figure(figsize=(14, 10))
+axs = fig.add_gridspec(2, 2)
+
+
+temp_min = np.min([np.min(T_real_full), np.min(T_simulada)])
+temp_max = np.max([np.max(T_real_full), np.max(T_simulada)])
+
+# Gráfico 1: Temperatura Real
+ax1 = fig.add_subplot(axs[0, 0])
+im1 = ax1.imshow(T_real_full, extent=[0, 360, total_simulation_time, 0], aspect='auto', cmap='jet', vmin=temp_min, vmax=temp_max)
+ax1.set_title('Temperatura Real (Sem Ruído)')
+ax1.set_xlabel('Ângulo (°)')
+ax1.set_ylabel('Tempo (s)')
+
+
+fig.colorbar(im1, ax=ax1, label='Temperatura (K)')
+
+# Gráfico 2: Temperatura Simulada
+ax2 = fig.add_subplot(axs[0, 1])
+im2 = ax2.imshow(T_simulada, extent=[0, 360, total_simulation_time, 0], aspect='auto', cmap='jet', vmin=temp_min, vmax=temp_max)
+ax2.set_title('Temperatura Simulada')
+ax2.set_xlabel('Ângulo (°)')
+ax2.set_ylabel('Tempo (s)')
+fig.colorbar(im2, ax=ax2, label='Temperatura (K)')
+
+# Gráfico 3: Diferença de Temperatura
+ax3 = fig.add_subplot(axs[1, :])
+im3 = ax3.imshow(T_diff, extent=[0, 360, total_simulation_time, 0], aspect='auto', cmap='bwr')
+ax3.set_xlabel('Ângulo (°)')
+ax3.set_ylabel('Tempo (s)')
+fig.colorbar(im3, ax=ax3, label='Diferença de Temperatura (K)')
 
 plt.tight_layout()
 plt.show()

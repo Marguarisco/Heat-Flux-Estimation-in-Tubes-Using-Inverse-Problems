@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 def dif_malhas(T_antes, T_novo):
 
@@ -29,6 +30,8 @@ def convergir_r(method, Ntheta_inicial, Nr_inicial, Tolerancia, simulation_time,
     Convergiu = False
     Refino_r = 1
     T_antes = None
+
+    method(simulation_time, args)
     
     while not Convergiu:
         Nr = Nr_inicial * Refino_r
@@ -36,7 +39,11 @@ def convergir_r(method, Ntheta_inicial, Nr_inicial, Tolerancia, simulation_time,
 
         args = physical_parameters(Nr, Ntheta)
         
+        time_start = time.time()
         T_novo, _ = method(simulation_time, args)
+        time_total = time.time() - time_start
+        
+        print(f"{Nr} x {Ntheta} - {time_total} - {Nr * Ntheta}")
 
         if T_antes is not None:
             Erro = dif_malhas(T_antes[-1], T_novo[-1])
@@ -57,6 +64,8 @@ def convergir_theta(method, Ntheta_inicial, Nr_inicial, Tolerancia, simulation_t
     Convergiu = False
     Refino_theta = 1
     T_antes = None
+
+    method(simulation_time, args)
     
     while not Convergiu:
         Nr = Nr_inicial  # Nr fixo
@@ -64,7 +73,11 @@ def convergir_theta(method, Ntheta_inicial, Nr_inicial, Tolerancia, simulation_t
 
         args = physical_parameters(Nr, Ntheta)
         
+        time_start = time.time()
         T_novo, _ = method(simulation_time, args)
+        time_end = time.time()
+
+        print(f"{Nr} x {Ntheta} - {time_end - time_start} - {Nr * Ntheta}")
         
         if T_antes is not None:
             Erro = dif_malhas(T_antes[-1], T_novo[-1])
@@ -89,14 +102,15 @@ if __name__ == '__main__':
     simulation_time = 1000000
     radial_size = 3
     angular_size = 4
-    Tolerancia = 1e-4
+    Tolerancia = 1e-5
 
     method = adi_method
 
     args = physical_parameters(radial_size, angular_size)
 
     # Primeira fase: convergência em r com Ntheta fixo
-    Nr_convergido = convergir_r(method, angular_size, radial_size, Tolerancia, simulation_time, args)
+    #Nr_convergido = convergir_r(method, angular_size, radial_size, Tolerancia, simulation_time, args)
+    Nr_convergido = 9
 
     # Segunda fase: convergência em theta com Nr fixo (usando a malha convergida em r)
     Ntheta_convergido = convergir_theta(method, angular_size, Nr_convergido, Tolerancia, simulation_time, args)

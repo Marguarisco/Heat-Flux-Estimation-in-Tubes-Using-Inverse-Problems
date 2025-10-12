@@ -6,9 +6,10 @@ import matplotlib.pyplot as plt
 path = "permanent_transient_folder/output/"
 
 deviations = [0.1, 0.5]
-deviation = deviations[1]
+deviation = deviations[0]
 lambda_list = np.logspace(-10, -5, num=10)
-lambda_regul = lambda_list[4]
+lambda_regul = lambda_list[5]
+print(f"{lambda_regul:.0e}")
 
 # Cole o caminho completo para o arquivo HDF5 que contém o heat_flux a ser comparado
 caminho_complepleto_do_h5 = path + f"data_{lambda_regul:.0e}_{deviation}_1e+03" # EX: ajuste para o seu arquivo
@@ -23,6 +24,7 @@ try:
             exit() # Sai do script se não houver dados
             
         last_iter_num = max([int(k.split('_')[1]) for k in iter_keys])
+
         last_iter_group = hf[f'iteration_{last_iter_num}']
         
         # Carrega o heat_flux estimado
@@ -39,68 +41,84 @@ try:
     theta_radianos = np.linspace(-np.pi, np.pi, num_pontos, endpoint=False) # Ângulos em radianos
     theta_graus = np.linspace(-180, 180, num_pontos, endpoint=False)          # Ângulos em graus para o eixo X
     
-    # Função ideal do heat_flux que você forneceu
-    # ATENÇÃO: Se a sua função espera theta em GRAUS, mude 'theta_radianos' para 'theta_graus'
+    Theta_completo = np.linspace(-np.pi,np.pi, num_pontos, endpoint=False) * 180/np.pi
+
+    
+
+    def make_cyclic(theta_array, array):
+        # Converte ângulos de [-180, 180] para [0, 360]
+        theta_0_360 = np.mod(theta_array, 360)
+        
+        # Obtém os índices que ordenam os novos ângulos
+        sort_indices = np.argsort(theta_0_360)
+        
+        # Ordena os ângulos e as temperaturas
+        theta_sorted = theta_0_360[sort_indices]
+        array_sorted = array[sort_indices]
+        
+        # Adiciona o ponto 360, repetindo o dado do ponto 0 para fechar o ciclo
+        theta_cyclic = np.append(theta_sorted, 360)
+        array_cyclic = np.append(array_sorted, array_sorted[0])
+    
+        return theta_cyclic, array_cyclic
+    
     q_ideal = ((-2000.0) * (theta_radianos / np.pi) ** 2) + 2000.0
 
+    erro_relativo_percent = np.zeros_like(q_ideal)
+    erro_relativo_percent = np.abs(q_estimado - q_ideal)
+
+    Theta_final_completo, q_ideal = make_cyclic(Theta_completo, q_ideal)
+    _, q_estimado = make_cyclic(Theta_completo, q_estimado)
+    _, erro_relativo_percent = make_cyclic(Theta_completo, erro_relativo_percent)
+    
     # --- 3. GERAÇÃO DO GRÁFICO ---
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    ax2 = ax1.twinx()
 
     # Plota o heat_flux ideal (azul mais claro, pontos conectados)
-    ax.plot(
-        theta_graus,       # Eixo X em graus
+    ax1.plot(
+        Theta_final_completo,       # Eixo X em graus
         q_ideal,
-        marker='o',        # Marcador de círculo
+        marker='',        # Marcador de círculo
         markersize=4,
         linestyle='-',     # Linha contínua
-        color='lightskyblue', # Cor mais clara
-        label='Sum of Q Ideal'
+        color='black', # Cor mais clara
+        label='Ideal'
     )
 
     # Plota o heat_flux estimado (azul mais escuro, pontos conectados)
-    ax.plot(
-        theta_graus,      # Eixo X em graus
+    ax1.plot(
+        Theta_final_completo,      # Eixo X em graus
         q_estimado,
         marker='o',       # Marcador de círculo
         markersize=4,
         linestyle='-',    # Linha contínua
-        color='darkblue', # Cor mais escura
-        label='Sum of q'
+        color='blue', # Cor mais escura
+        label='Estimado'
     )
     
-    # --- Adiciona os rótulos aos pontos ---
-    # Rótulos para o Q Ideal (ajuste a frequência se tiver muitos pontos)
-    # Exemplo: a cada 20 pontos
-    for i in range(0, num_pontos, 20): # Ajuste o '20' para controlar quantos rótulos aparecem
-        ax.text(
-            theta_graus[i], 
-            q_ideal[i], 
-            f"{q_ideal[i]:.0f}", # Formata como inteiro, como na imagem
-            fontsize=8, ha='center', va='bottom', color='lightskyblue'
-        )
-    
-    # Rótulos para o Q Estimado (ajuste a frequência e a posição para não sobrepor)
-    for i in range(0, num_pontos, 20): # Ajuste o '20'
-        ax.text(
-            theta_graus[i], 
-            q_estimado[i], 
-            f"{q_estimado[i]:.0f}", # Formata como inteiro
-            fontsize=8, ha='center', va='top', color='darkblue'
-        )
+    ax2.plot(Theta_final_completo, erro_relativo_percent, 'k--', lw = 1,  label="Erro absoluto")
         
     # --- Configurações do Gráfico ---
-    ax.set_xlabel("Ângulo", fontsize=12)
-    ax.set_ylabel("Valor de Q", fontsize=12)
-    ax.set_title("Comparação: Heat Flux Estimado vs. Ideal", fontsize=14)
-    ax.grid(True, linestyle=':')
-    ax.legend(loc='upper left', ncol=2, frameon=False) # Legenda no canto superior esquerdo, sem moldura
-
+    ax1.set_xlabel("Ângulo (°)", fontsize=12)
+    ax1.set_ylabel(r'Fluxo de Calor (q) [$W/m^2$]', fontsize=12)
+    ax1.grid(True, linestyle=':')
+    ax1.legend(loc='upper left', ncol=2, frameon=False) # Legenda no canto superior esquerdo, sem moldura
+    
     # Ajusta os limites do eixo Y para que comece em zero ou um pouco abaixo
-    current_ymin, current_ymax = ax.get_ylim()
-    ax.set_ylim(min(0, current_ymin), current_ymax * 1.05) # Começa em 0 ou abaixo, e com 5% de margem no topo
+    current_ymin, current_ymax = ax1.get_ylim()
+    ax1.set_ylim(min(0, current_ymin), current_ymax * 1.15) # Começa em 0 ou abaixo, e com 5% de margem no topo
+
+    h1, l1 = ax1.get_legend_handles_labels()
+    h2, l2 = ax2.get_legend_handles_labels()
+    ax1.legend(h1 + h2, l1 + l2, loc='upper right', ncol=1)
 
     # Configura os ticks do eixo X para mostrar de 0 a 360
-    ax.set_xticks(np.arange(-180, 180, 50)) # Ticks a cada 50 graus
+    ax1.set_xticks(np.arange(0, 361, 60))
+    ax2.set_ylabel('Erro absoluto')
+    ax2.set_ylim(0, 1000)
+        # Formata o eixo para adicionar o sufixo "%"
     
     plt.tight_layout()
     plt.show()

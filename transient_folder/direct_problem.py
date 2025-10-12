@@ -186,7 +186,7 @@ def ADIMethod(
     radial_size: int, 
     angular_size: int, 
     total_simulation_time: int,
-    dt = 0.1
+    dt = 1
 ) -> np.ndarray:
     """
     Executes the Alternating Direction Implicit (ADI) method to solve the diffusion equation.

@@ -1,7 +1,7 @@
 import numpy as np
 from graph import *
 
-initial_path ='C:/Users/marce/Desktop/TCC/Direct Problem/Results/resultados_'
+initial_path ='direct_problem_folder/Results/resultados_'
 
 method = 'adi'
 
@@ -25,5 +25,7 @@ T_explicit = dados_explicit['temperaturas']
 dt_explicit = dados_explicit['dt']
 
 
-graph_comparison_analitic_all(T_explicit, T_implicit, T_adi, dt_adi)
-gif_comparison_analitic_all(T_explicit, T_implicit, T_adi, dt_adi)
+#graph_comparison_analitic_all(T_explicit, T_implicit, T_adi, dt_adi)
+#gif_comparison_analitic_all(T_explicit, T_implicit, T_adi, dt_adi)
+
+graph_comparison_error(T_explicit, T_implicit, T_adi)
