@@ -27,6 +27,7 @@ transient_folder/output
 transient_folder/output_out
 transient_folder/graphs
 transient_folder/data
+transient_folder/data.py
 transient_folder/graph_q_all.py
 
 results

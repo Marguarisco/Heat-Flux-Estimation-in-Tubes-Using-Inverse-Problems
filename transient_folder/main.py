@@ -7,7 +7,7 @@ from utils import run_experiment, load_or_generate_random_values
 
 path = 'transient_folder/data/'
 
-deviations = [0.1]
+deviations = [0.5]
 alpha_regul = 0
 
 radial_size = 9
@@ -17,18 +17,16 @@ num_sensors = 20
 total_simulation_time = 3600
 max_iterations = 200000
 
-N_list = [2, 4, 6, 8]
+N_list = [3]
 
 if __name__ == '__main__':
     filename = path + f"direct_problem_{radial_size}_{angular_size}_{total_simulation_time}.npz"
 
     if os.path.exists(filename):
-        # If the file exists, load the saved array
         values = np.load(filename)['estimated_temperature']
         print(f"Loaded array from {filename} and shape {values.shape}")
 
     else:
-        # If the file does not exist, generate a new array and save it
         run_experiment(filename, radial_size, angular_size, total_simulation_time, dt = 0.01)
         values = np.load(filename)['estimated_temperature']
         print(f"Made a new simulation and saved to {filename} with shape {values.shape}")
@@ -40,24 +38,18 @@ if __name__ == '__main__':
     
     shape = (total_simulation_time, num_sensors, radial_size)
 
-    # Load or generate random values
     filename = path + f'random_values_{total_simulation_time}x{num_sensors}.npy'
     random_values = load_or_generate_random_values(T_measured.shape, filename)
 
-    # Get the number of available CPU cores
     num_processes = mp.cpu_count()
 
     with futures.ProcessPoolExecutor(max_workers=num_processes) as executor:
-        # Iterate over each deviation value
         for deviation in deviations:
             T_measured += (deviation * random_values)
-
-            # Iterate over each alpha value
             for N in N_list:
-                # Print the current alpha and deviation being executed
+
                 print(f"Executing for alpha: {alpha_regul:.0e}, Deviation: {deviation}, N: {N}")
 
-                # Run the optimization process
                 args = run_optimization(
                     T_measured = T_measured,
                     max_iterations = max_iterations,

@@ -9,19 +9,7 @@ def solve_tridiagonal_system(
     rhs: np.ndarray, 
     size: int
 ) -> np.ndarray:
-    """
-    Solves a tridiagonal linear system using the Thomas algorithm.
 
-    Parameters:
-    lower_diagonal (np.ndarray): The lower diagonal of the tridiagonal matrix.
-    main_diagonal (np.ndarray): The main diagonal of the tridiagonal matrix.
-    upper_diagonal (np.ndarray): The upper diagonal of the tridiagonal matrix.
-    rhs (np.ndarray): The right-hand side vector.
-    size (int): The size of the system.
-
-    Returns:
-    np.ndarray: The solution vector.
-    """
     c_prime = np.zeros(size - 1, dtype=np.float64)
     d_prime = np.zeros(size, dtype=np.float64)
     solution = np.zeros(size, dtype=np.float64)
@@ -63,26 +51,6 @@ def solve_implicit_radial(
     new_temp: np.ndarray, 
     rhs_r: np.ndarray
 ) -> np.ndarray:
-    """
-    Solves the implicit radial step for each theta using the tridiagonal solver.
-
-    Parameters:
-    current_temp (np.ndarray): Current temperature matrix.
-    gamma_tt (np.ndarray): Coefficient array for theta-direction terms.
-    main_diag_r (np.ndarray): Main diagonal for radial tridiagonal systems.
-    upper_diag_r (np.ndarray): Upper diagonal for radial tridiagonal systems.
-    lower_diag_r (np.ndarray): Lower diagonal for radial tridiagonal systems.
-    gamma_0 (np.ndarray): Boundary condition parameter at r=0.
-    gamma_j (float): Boundary condition parameter at r=r_ext.
-    external_temp (float): External temperature boundary condition.
-    angular_size (int): Number of theta divisions.
-    radial_size (int): Number of radial divisions.
-    new_temp (np.ndarray): Array to store the new temperatures.
-    rhs_r (np.ndarray): Right-hand side vector for radial systems.
-
-    Returns:
-    np.ndarray: Updated temperature matrix after radial implicit solve.
-    """
 
     for j in range(angular_size):
         prev_j = (j - 1) % angular_size
@@ -125,27 +93,6 @@ def solve_implicit_theta(
     main_diag_theta: np.ndarray, 
     aux_diag_theta: np.ndarray
 ) -> np.ndarray:
-    """
-    Solves the implicit theta step for each radial position using the tridiagonal solver.
-
-    Parameters:
-    current_temp (np.ndarray): Current temperature matrix.
-    gamma_r (np.ndarray): Coefficient array for radial-direction terms.
-    gamma_rr (float): Coefficient for radial diffusion.
-    gamma_tt (np.ndarray): Coefficient array for theta-direction terms.
-    gamma_0 (np.ndarray): Boundary condition parameter at r=0.
-    gamma_j (float): Boundary condition parameter at r=r_ext.
-    external_temp (float): External temperature boundary condition.
-    angular_size (int): Number of theta divisions.
-    radial_size (int): Number of radial divisions.
-    new_temp (np.ndarray): Array to store the new temperatures.
-    rhs_theta (np.ndarray): Right-hand side vector for theta systems.
-    main_diag_theta (np.ndarray): Main diagonal for theta tridiagonal systems.
-    aux_diag_theta (np.ndarray): Auxiliary diagonal for theta tridiagonal systems.
-
-    Returns:
-    np.ndarray: Updated temperature matrix after theta implicit solve.
-    """
 
     for i in range(radial_size):
         radius_index = i % radial_size
@@ -186,20 +133,9 @@ def ADIMethod(
     radial_size: int, 
     angular_size: int, 
     total_simulation_time: int,
-    dt = 1
+    dt = 0.1
 ) -> np.ndarray:
-    """
-    Executes the Alternating Direction Implicit (ADI) method to solve the diffusion equation.
 
-    Parameters:
-    heat_flux (np.ndarray): Heat flux distribution as a function of theta. 
-    radial_size (int): Number of radial divisions. Default is 9.
-    angular_size (int): Number of angular divisions. Default is 20.
-    max_time_steps (int): Maximum number of time steps.
-
-    Returns:
-    np.ndarray: History of external temperature at the boundary for each theta over time.
-    """
     # PHYSICAL PARAMETERS
     r_inner, r_outer = 0.1, 0.15  # Inner and outer rad (meters)
     T_inner, T_outer, T_tube = 300.0, 300.0, 300.0  # Temperatures in Kelvin
