@@ -8,10 +8,6 @@ Os algoritmos foram implementados em **Python (versão 3.10.1)**. As principais 
   
   - **SciPy**: Para funções matemáticas otimizadas.
   
-  - **Matplotlib**: Para a geração de todos os gráficos e visualizações dos resultados.
-  
-  - **Numba**: Para otimização JIT (Just-In-Time) e aceleração dos loops computacionais no problema direto.
+  - **Numba**: Para otimização e aceleração dos loops computacionais no problema direto.
   
   - **Multiprocessing**: Para paralelizar o cálculo do gradiente no problema inverso, reduzindo o tempo de execução.
-  
-  - **h5py**: Para armazenamento e gerenciamento eficiente dos dados de simulação em formato binário (HDF5).
